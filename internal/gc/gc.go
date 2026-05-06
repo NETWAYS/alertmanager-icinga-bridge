@@ -14,8 +14,7 @@ import (
 	"time"
 
 	"github.com/NETWAYS/alertmanager-icinga-bridge/internal/config"
-
-	"github.com/vshn/go-icinga2-client/icinga2"
+	"github.com/NETWAYS/alertmanager-icinga-bridge/internal/icinga2"
 )
 
 // extractDowntime searches the provided downtime array for a downtime for

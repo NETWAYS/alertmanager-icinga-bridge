@@ -16,10 +16,10 @@ import (
 
 	"github.com/NETWAYS/alertmanager-icinga-bridge/internal/config"
 	"github.com/NETWAYS/alertmanager-icinga-bridge/internal/gc"
+	"github.com/NETWAYS/alertmanager-icinga-bridge/internal/icinga2"
 
 	"github.com/alecthomas/kingpin/v2"
 	"github.com/bketelsen/logr"
-	"github.com/vshn/go-icinga2-client/icinga2"
 )
 
 // ServeCommand holds all the configuration and objects necessary to serve the webhook

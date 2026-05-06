@@ -5,8 +5,9 @@ import (
 	"regexp"
 	"strconv"
 
+	"github.com/NETWAYS/alertmanager-icinga-bridge/internal/icinga2"
+
 	"github.com/bketelsen/logr"
-	"github.com/vshn/go-icinga2-client/icinga2"
 )
 
 // Error messages

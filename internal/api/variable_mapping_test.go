@@ -5,9 +5,10 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/NETWAYS/alertmanager-icinga-bridge/internal/icinga2"
+
 	"github.com/corvus-ch/logr/buffered"
 	"github.com/stretchr/testify/assert"
-	"github.com/vshn/go-icinga2-client/icinga2"
 )
 
 var mapIcingaVariableTest = map[string]struct {

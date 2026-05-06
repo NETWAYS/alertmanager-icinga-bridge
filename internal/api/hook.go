@@ -16,9 +16,9 @@ import (
 	"strings"
 
 	"github.com/NETWAYS/alertmanager-icinga-bridge/internal/config"
+	"github.com/NETWAYS/alertmanager-icinga-bridge/internal/icinga2"
 
 	"github.com/prometheus/alertmanager/template"
-	"github.com/vshn/go-icinga2-client/icinga2"
 )
 
 // responseJSON is used to marshal responses to incoming webhook requests to

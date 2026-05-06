@@ -18,9 +18,9 @@ import (
 	"time"
 
 	"github.com/NETWAYS/alertmanager-icinga-bridge/internal/config"
+	"github.com/NETWAYS/alertmanager-icinga-bridge/internal/icinga2"
 
 	"github.com/prometheus/alertmanager/template"
-	"github.com/vshn/go-icinga2-client/icinga2"
 )
 
 // validateServiceName checks that computed service name matches constraints

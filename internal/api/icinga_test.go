@@ -15,10 +15,10 @@ import (
 	"testing"
 
 	"github.com/NETWAYS/alertmanager-icinga-bridge/internal/config"
+	"github.com/NETWAYS/alertmanager-icinga-bridge/internal/icinga2"
 
 	"github.com/prometheus/alertmanager/template"
 	"github.com/stretchr/testify/assert"
-	"github.com/vshn/go-icinga2-client/icinga2"
 )
 
 type alertTestCase struct {

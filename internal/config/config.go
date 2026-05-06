@@ -18,11 +18,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/NETWAYS/alertmanager-icinga-bridge/internal/icinga2"
+
 	"github.com/bketelsen/logr"
 	"github.com/corvus-ch/logr/buffered"
 	log "github.com/corvus-ch/logr/logrus"
 	"github.com/sirupsen/logrus"
-	"github.com/vshn/go-icinga2-client/icinga2"
 )
 
 type icingaConfig struct {
