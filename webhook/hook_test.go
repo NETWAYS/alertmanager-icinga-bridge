@@ -14,7 +14,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/vshn/signalilo/config"
+	"github.com/NETWAYS/alertmanager-icinga-bridge/config"
 )
 
 func mockEchoHandler(w http.ResponseWriter, r *http.Request) {

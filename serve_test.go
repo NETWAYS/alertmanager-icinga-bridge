@@ -11,7 +11,7 @@ package main
 
 import (
 	"github.com/stretchr/testify/assert"
-	"github.com/vshn/signalilo/config"
+	"github.com/NETWAYS/alertmanager-icinga-bridge/config"
 	"net/http"
 	"testing"
 )

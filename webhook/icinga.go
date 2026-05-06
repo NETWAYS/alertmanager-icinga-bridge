@@ -19,7 +19,7 @@ import (
 
 	"github.com/prometheus/alertmanager/template"
 	"github.com/vshn/go-icinga2-client/icinga2"
-	"github.com/vshn/signalilo/config"
+	"github.com/NETWAYS/alertmanager-icinga-bridge/config"
 )
 
 // validateServiceName checks that computed service name matches constraints

@@ -37,7 +37,7 @@ type icingaConfig struct {
 }
 
 type Configuration interface {
-	GetConfig() *SignaliloConfig
+	GetConfig() *Config
 
 	GetLogger() logr.Logger
 	SetLogger(logger logr.Logger)
@@ -56,7 +56,7 @@ type alertManagerConfig struct {
 	PluginOutputStateSuffixes []string
 }
 
-type SignaliloConfig struct {
+type Config struct {
 	UUID                     string
 	HostName                 string
 	IcingaConfig             icingaConfig
@@ -120,7 +120,7 @@ func ConfigInitialize(configuration Configuration) {
 
 }
 
-func makeCertPool(c *SignaliloConfig, l logr.Logger) (*x509.CertPool, error) {
+func makeCertPool(c *Config, l logr.Logger) (*x509.CertPool, error) {
 	rootCAs := x509.NewCertPool()
 	if ok := rootCAs.AppendCertsFromPEM([]byte(c.CAData)); !ok {
 		return nil, fmt.Errorf("No certs appended")
@@ -128,7 +128,7 @@ func makeCertPool(c *SignaliloConfig, l logr.Logger) (*x509.CertPool, error) {
 	return rootCAs, nil
 }
 
-func newIcingaClient(c *SignaliloConfig, l logr.Logger) (icinga2.Client, error) {
+func newIcingaClient(c *Config, l logr.Logger) (icinga2.Client, error) {
 	rootCAs, err := x509.SystemCertPool()
 	if err != nil && c.CAData == "" {
 		return nil, fmt.Errorf("could not load system rootCA and no CA provided: %w", err)
@@ -218,12 +218,12 @@ func MockLogger(verbosity int) logr.Logger {
 }
 
 type MockConfiguration struct {
-	config       SignaliloConfig
+	config       Config
 	logger       logr.Logger
 	icingaClient icinga2.Client
 }
 
-func (c *MockConfiguration) GetConfig() *SignaliloConfig {
+func (c *MockConfiguration) GetConfig() *Config {
 	return &c.config
 }
 func (c *MockConfiguration) GetLogger() logr.Logger {
@@ -232,7 +232,7 @@ func (c *MockConfiguration) GetLogger() logr.Logger {
 func (c *MockConfiguration) GetIcingaClient() icinga2.Client {
 	return c.icingaClient
 }
-func (c *MockConfiguration) SetConfig(config SignaliloConfig) {
+func (c *MockConfiguration) SetConfig(config Config) {
 	c.config = config
 }
 func (c *MockConfiguration) SetLogger(logger logr.Logger) {
@@ -245,9 +245,9 @@ func (c *MockConfiguration) SetIcingaClient(icinga icinga2.Client) {
 func NewMockConfiguration(verbosity int) Configuration {
 	// TODO: fill out defaults for MockConfiguration, maybe move default
 	// from serve.go to here
-	signaliloCfg := SignaliloConfig{
+	Cfg := Config{
 		UUID:     "",
-		HostName: "signalilo_appuio_lab",
+		HostName: "appuio_lab",
 		IcingaConfig: icingaConfig{
 			URL:               []string{"localhost:5665", "anotherhost:5665"},
 			User:              "sepp",
@@ -272,7 +272,7 @@ func NewMockConfiguration(verbosity int) Configuration {
 		MaxCheckAttempts:         1,
 	}
 	mockCfg := &MockConfiguration{
-		config: signaliloCfg,
+		config: Cfg,
 	}
 	log := MockLogger(mockCfg.config.LogLevel)
 	mockCfg.logger = log

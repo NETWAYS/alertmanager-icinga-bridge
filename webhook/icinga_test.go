@@ -17,7 +17,7 @@ import (
 	"github.com/prometheus/alertmanager/template"
 	"github.com/stretchr/testify/assert"
 	"github.com/vshn/go-icinga2-client/icinga2"
-	"github.com/vshn/signalilo/config"
+	"github.com/NETWAYS/alertmanager-icinga-bridge/config"
 )
 
 type alertTestCase struct {

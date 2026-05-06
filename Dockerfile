@@ -13,7 +13,7 @@ FROM golang:1.20 as builder
 ARG BINARY_VERSION
 
 # Workdir must be outside of GOPATH because of go mod usage
-WORKDIR /src/signalilo
+WORKDIR /src/alertmanager-icinga-bridge
 
 # Download modules for leveraging docker build cache
 COPY go.mod go.sum ./
@@ -22,7 +22,7 @@ RUN go mod download
 # Add code
 COPY . .
 
-# Run tests and build Signalilo
+# Run tests and build alertmanager-icinga-bridge
 RUN make test
 RUN make build
 
@@ -33,8 +33,8 @@ FROM gcr.io/distroless/static:nonroot
 
 WORKDIR /
 
-COPY --from=builder /src/signalilo/signalilo /usr/local/bin/
+COPY --from=builder /src/alertmanager-icinga-bridge/alertmanager-icinga-bridge /usr/local/bin/
 
 EXPOSE 8888
 
-ENTRYPOINT ["/usr/local/bin/signalilo"]
+ENTRYPOINT ["/usr/local/bin/alertmanager-icinga-bridge"]

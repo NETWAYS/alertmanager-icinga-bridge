@@ -13,8 +13,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/NETWAYS/alertmanager-icinga-bridge/config"
 	"github.com/vshn/go-icinga2-client/icinga2"
-	"github.com/vshn/signalilo/config"
 )
 
 // extractDowntime searches the provided downtime array for a downtime for
@@ -28,7 +28,7 @@ func extractDowntime(downtimes []icinga2.Downtime, svcName string) (icinga2.Down
 	return icinga2.Downtime{}, false
 }
 
-// collectService cleans up a single service that is managed by this Signalilo
+// collectService cleans up a single service that is managed by this alertmanager-icinga-bridge
 func collectService(svc icinga2.Service, c config.Configuration, downtimes []icinga2.Downtime) error {
 	l := c.GetLogger()
 	icinga := c.GetIcingaClient()
@@ -62,11 +62,11 @@ func collectService(svc icinga2.Service, c config.Configuration, downtimes []ici
 }
 
 // Collect runs a garbage collection cycle to clean up any old
-// Signalilo-managed service objects
+// alertmanager-icinga-bridge-managed service objects
 func Collect(ts time.Time, c config.Configuration) error {
 	l := c.GetLogger()
 	l.Infof("[Collect] Running garbage collection at ts=%v", ts)
-	// Get all signalilo services
+	// Get all alertmanager-icinga-bridge services
 	icinga := c.GetIcingaClient()
 	hostname := c.GetConfig().HostName
 	services, err := icinga.ListServices(icinga2.QueryFilter{
@@ -86,7 +86,7 @@ func Collect(ts time.Time, c config.Configuration) error {
 	}
 	l.V(2).Infof("[Collect] Found %v downtimes with host = %v", len(downtimes), hostname)
 	// Iterate through services, finding ones that are managed by this
-	// Signalilo and delete services which have transitioned to OK longer
+	// alertmanager-icinga-bridge and delete services which have transitioned to OK longer
 	// than keep_for ago
 	for _, svc := range services {
 		if svc.Vars["bridge_uuid"] == c.GetConfig().UUID {
