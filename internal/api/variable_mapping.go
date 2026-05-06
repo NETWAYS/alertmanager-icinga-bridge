@@ -1,3 +1,5 @@
+// Licensed under "BSD 3-Clause". See LICENSE file.
+
 package api
 
 import (
