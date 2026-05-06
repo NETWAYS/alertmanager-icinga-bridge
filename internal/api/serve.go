@@ -7,16 +7,15 @@
  * Licensed under "BSD 3-Clause". See LICENSE file.
  */
 
-package main
+package api
 
 import (
 	"fmt"
 	"net/http"
 	"time"
 
-	"github.com/NETWAYS/alertmanager-icinga-bridge/config"
-	"github.com/NETWAYS/alertmanager-icinga-bridge/gc"
-	"github.com/NETWAYS/alertmanager-icinga-bridge/webhook"
+	"github.com/NETWAYS/alertmanager-icinga-bridge/internal/config"
+	"github.com/NETWAYS/alertmanager-icinga-bridge/internal/gc"
 
 	"github.com/alecthomas/kingpin/v2"
 	"github.com/bketelsen/logr"
@@ -175,7 +174,7 @@ func (s *ServeCommand) run(ctx *kingpin.ParseContext) error {
 	http.HandleFunc("/healthz",
 		func(w http.ResponseWriter, r *http.Request) { healthz(w, r, s) })
 	http.HandleFunc("/webhook",
-		func(w http.ResponseWriter, r *http.Request) { webhook.Webhook(w, r, s) })
+		func(w http.ResponseWriter, r *http.Request) { Webhook(w, r, s) })
 
 	s.logger.Infof("UUID: %v", s.GetConfig().UUID)
 	s.logger.Infof("Keep for: %v", s.GetConfig().KeepFor)
@@ -205,7 +204,7 @@ func (s *ServeCommand) initialize(ctx *kingpin.ParseContext) error {
 	return nil
 }
 
-func configureServeCommand(app *kingpin.Application) {
+func ConfigureServeCommand(app *kingpin.Application) {
 	s := &ServeCommand{logLevel: 1,
 		config: config.Config{
 			StaticServiceVars:    map[string]string{},

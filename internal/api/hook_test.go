@@ -7,14 +7,15 @@
  * Licensed under "BSD 3-Clause". See LICENSE file.
  */
 
-package webhook
+package api
 
 import (
 	"net/http"
 	"testing"
 
+	"github.com/NETWAYS/alertmanager-icinga-bridge/internal/config"
+
 	"github.com/stretchr/testify/assert"
-	"github.com/NETWAYS/alertmanager-icinga-bridge/config"
 )
 
 func mockEchoHandler(w http.ResponseWriter, r *http.Request) {

@@ -13,7 +13,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/NETWAYS/alertmanager-icinga-bridge/config"
+	"github.com/NETWAYS/alertmanager-icinga-bridge/internal/config"
+
 	"github.com/vshn/go-icinga2-client/icinga2"
 )
 

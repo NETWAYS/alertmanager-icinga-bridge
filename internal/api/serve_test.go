@@ -7,13 +7,15 @@
  * Licensed under "BSD 3-Clause". See LICENSE file.
  */
 
-package main
+package api
 
 import (
-	"github.com/stretchr/testify/assert"
-	"github.com/NETWAYS/alertmanager-icinga-bridge/config"
 	"net/http"
 	"testing"
+
+	"github.com/NETWAYS/alertmanager-icinga-bridge/internal/config"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestHealthz(t *testing.T) {

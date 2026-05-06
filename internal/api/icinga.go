@@ -7,7 +7,7 @@
  * Licensed under "BSD 3-Clause". See LICENSE file.
  */
 
-package webhook
+package api
 
 import (
 	"crypto/sha256"
@@ -17,9 +17,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/NETWAYS/alertmanager-icinga-bridge/internal/config"
+
 	"github.com/prometheus/alertmanager/template"
 	"github.com/vshn/go-icinga2-client/icinga2"
-	"github.com/NETWAYS/alertmanager-icinga-bridge/config"
 )
 
 // validateServiceName checks that computed service name matches constraints

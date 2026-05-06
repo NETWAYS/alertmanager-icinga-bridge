@@ -13,6 +13,8 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/NETWAYS/alertmanager-icinga-bridge/internal/api"
+
 	"github.com/alecthomas/kingpin/v2"
 )
 
@@ -24,7 +26,7 @@ var (
 
 func main() {
 	app := kingpin.New("alertmanager-icinga-bridge", "alertmanager-icinga-bridge takes in Alertmanager alerts through a webhook, translates them into Icinga2 services and posts them to Icinga using the Icinga API").Version(Version)
-	configureServeCommand(app)
+	api.ConfigureServeCommand(app)
 
 	fmt.Printf("alertmanager-icinga-bridge %v\n", Version)
 	fmt.Printf("Build time: %v\n\n", BuildDate)

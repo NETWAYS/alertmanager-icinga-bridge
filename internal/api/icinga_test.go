@@ -7,17 +7,18 @@
  * Licensed under "BSD 3-Clause". See LICENSE file.
  */
 
-package webhook
+package api
 
 import (
 	"fmt"
 	"math"
 	"testing"
 
+	"github.com/NETWAYS/alertmanager-icinga-bridge/internal/config"
+
 	"github.com/prometheus/alertmanager/template"
 	"github.com/stretchr/testify/assert"
 	"github.com/vshn/go-icinga2-client/icinga2"
-	"github.com/NETWAYS/alertmanager-icinga-bridge/config"
 )
 
 type alertTestCase struct {
