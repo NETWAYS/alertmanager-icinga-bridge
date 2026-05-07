@@ -59,13 +59,13 @@ func checkBearerToken(r *http.Request, c config.Configuration) error {
 func Webhook(w http.ResponseWriter, r *http.Request, c config.Configuration) {
 	defer r.Body.Close()
 
-	l := c.GetLogger()
-	if l == nil {
+	logger := c.GetLogger()
+	if logger == nil {
 		panic("logger is nil")
 	}
 
 	if err := checkBearerToken(r, c); err != nil {
-		l.Errorf("Checking webhook authentication: %v", err)
+		logger.Error("Checking webhook authentication", "error", err.Error())
 		asJSON(w, http.StatusUnauthorized, err.Error())
 		return
 	}
@@ -78,17 +78,17 @@ func Webhook(w http.ResponseWriter, r *http.Request, c config.Configuration) {
 	// Godoc: https://godoc.org/github.com/prometheus/alertmanager/template#Data
 	data := template.Data{}
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
-		l.Errorf("Unable to decode request")
+		logger.Error("Unable to decode request")
 		asJSON(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	l.Infof("Alerts: GroupLabels=%v, CommonLabels=%v", data.GroupLabels, data.CommonLabels)
+	logger.Info(fmt.Sprintf("Alerts: GroupLabels=%v, CommonLabels=%v", data.GroupLabels, data.CommonLabels))
 
 	serviceHost := c.GetConfig().HostName
-	l.V(2).Infof("Check service host: %v", serviceHost)
+	logger.Info(fmt.Sprintf("Check service host: %v", serviceHost))
 	host, err := icinga.GetHost(serviceHost)
 	if err != nil {
-		l.Errorf("Did not find service host %v: %v\n", host, err)
+		logger.Error(fmt.Sprintf("Did not find service host %v: %v", host, err))
 		asJSON(w, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -96,22 +96,22 @@ func Webhook(w http.ResponseWriter, r *http.Request, c config.Configuration) {
 	sameAlertName := false
 	groupedAlertName, sameAlertName := data.GroupLabels["alertname"]
 	if sameAlertName {
-		l.V(2).Infof("Grouped alerts with matching alertname: %v", groupedAlertName)
+		logger.Info(fmt.Sprintf("Grouped alerts with matching alertname: %v", groupedAlertName))
 	} else if len(data.Alerts) > 1 {
-		l.V(2).Infof("Grouped alerts without matching alertname: %d alerts", len(data.Alerts))
+		logger.Info(fmt.Sprintf("Grouped alerts without matching alertname: %d alerts", len(data.Alerts)))
 	}
 
 	for _, alert := range data.Alerts {
-		l.V(2).Infof("Processing %v alert: alertname=%v, severity=%v, message=%v",
+		logger.Info(fmt.Sprintf("Processing %v alert: alertname=%v, severity=%v, message=%v",
 			alert.Status,
 			alert.Labels["alertname"],
 			alert.Labels["severity"],
-			alert.Annotations["message"])
+			alert.Annotations["message"]))
 
 		// Compute service and display name for alert
 		serviceName, err := computeServiceName(data, alert, c)
 		if err != nil {
-			l.Errorf("Unable to compute internal service name: %v", err)
+			logger.Error("Unable to compute internal service name", "error", err.Error())
 		}
 		var displayName string
 		if c.GetConfig().DisplayNameAsServiceName {
@@ -119,14 +119,14 @@ func Webhook(w http.ResponseWriter, r *http.Request, c config.Configuration) {
 		} else {
 			displayName, err = computeDisplayName(data, alert)
 			if err != nil {
-				l.Errorf("Unable to compute service display name: %v", err)
+				logger.Error("Unable to compute service display name", "error", err.Error())
 			}
 		}
 
 		// Update or create service in icinga
 		svc, err := updateOrCreateService(icinga, serviceHost, serviceName, displayName, alert, c)
 		if err != nil {
-			l.Errorf("Error in checkOrCreateService for %v: %v", serviceName, err)
+			logger.Error(fmt.Sprintf("Error in checkOrCreateService for %v: %v", serviceName, err))
 		}
 		// If we got an emtpy service object, the service was not
 		// created, don't try to call process-check-result
@@ -140,8 +140,7 @@ func Webhook(w http.ResponseWriter, r *http.Request, c config.Configuration) {
 			exitStatus = 0
 
 		}
-		l.V(2).Infof("Executing ProcessCheckResult on icinga2 for %v: exit status %v",
-			serviceName, exitStatus)
+		logger.Info(fmt.Sprintf("Executing ProcessCheckResult on icinga2 for %v: exit status %v", serviceName, exitStatus))
 
 		// Get the Plugin Output from the first Annotation we find that has some data
 		pluginOutput := ""
@@ -167,7 +166,7 @@ func Webhook(w http.ResponseWriter, r *http.Request, c config.Configuration) {
 			PluginOutput: pluginOutput,
 		})
 		if err != nil {
-			l.Errorf("Error in ProcessCheckResult for %v: %v", serviceName, err)
+			logger.Error(fmt.Sprintf("Error in ProcessCheckResult for %v: %v", serviceName, err))
 		}
 	}
 

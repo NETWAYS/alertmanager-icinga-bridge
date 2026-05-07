@@ -4,12 +4,12 @@ package api
 
 import (
 	"errors"
+	"fmt"
+	"log/slog"
 	"regexp"
 	"strconv"
 
 	"github.com/NETWAYS/alertmanager-icinga-bridge/internal/icinga2"
-
-	"github.com/bketelsen/logr"
 )
 
 // Error messages
@@ -22,7 +22,7 @@ var (
 	mappingKeyPattern = regexp.MustCompile("^icinga_([a-z]+)_(.*)$")
 )
 
-func mapIcingaVariables(vars icinga2.Vars, kv map[string]string, prefix string, log logr.Logger) icinga2.Vars {
+func mapIcingaVariables(vars icinga2.Vars, kv map[string]string, prefix string, logger *slog.Logger) icinga2.Vars {
 	for k, v := range kv {
 		vars[prefix+k] = v
 
@@ -30,7 +30,7 @@ func mapIcingaVariables(vars icinga2.Vars, kv map[string]string, prefix string, 
 		if err == ErrorNotAMappingKey {
 			continue
 		} else if err != nil {
-			log.Infof("Failed to map Icinga variable '%s': %s", k, err)
+			slog.Info("Failed to map Icinga variable", "variable", k, "error", err.Error())
 			continue
 		}
 
@@ -63,14 +63,14 @@ func mapIcingaVariable(key, value string) (string, interface{}, error) {
 	return "", nil, ErrorUnknownMappingType
 }
 
-func addStaticIcingaVariables(vars icinga2.Vars, staticVars map[string]string, log logr.Logger) icinga2.Vars {
+func addStaticIcingaVariables(vars icinga2.Vars, staticVars map[string]string, logger *slog.Logger) icinga2.Vars {
 	for k, v := range staticVars {
 		// Only add static variable if it's not already set on the
 		// service.
 		if ev, ok := vars[k]; ok {
-			log.V(2).Infof("Not adding static variable %v=%v to service; service already has %v=%v", k, v, k, ev)
+			slog.Info(fmt.Sprintf("Not adding static variable %v=%v to service; service already has %v=%v", k, v, k, ev))
 		} else {
-			log.V(2).Infof("Adding static variable %v=%v to service", k, v)
+			slog.Info(fmt.Sprintf("Adding static variable %v=%v to service", k, v))
 			vars[k] = v
 		}
 	}
