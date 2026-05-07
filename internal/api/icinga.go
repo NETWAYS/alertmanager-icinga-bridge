@@ -48,7 +48,7 @@ func computeServiceName(
 	alert template.Alert,
 	c config.Configuration) (string, error) {
 
-	l := c.GetLogger()
+	logger := c.GetLogger()
 
 	hash := sha256.New()
 	// use bridge uuid to ensure we can't accidentally touch another
@@ -60,7 +60,7 @@ func computeServiceName(
 
 	serviceName := alert.Labels["alertname"]
 	if serviceName == "" {
-		l.V(2).Infof("alert doesn't have label 'alertname', just using %v as service name", labelhash)
+		logger.Info(fmt.Sprintf("alert doesn't have label 'alertname', just using %v as service name", labelhash))
 	}
 	serviceName = fmt.Sprintf("%v_%v", serviceName, labelhash)
 
@@ -102,7 +102,7 @@ func createServiceData(hostname string,
 	status int,
 	heartbeatInterval time.Duration,
 	c config.Configuration) icinga2.Service {
-	l := c.GetLogger()
+	logger := c.GetLogger()
 	config := c.GetConfig()
 
 	// build Vars map
@@ -110,9 +110,9 @@ func createServiceData(hostname string,
 	// Set defaults
 	serviceVars["bridge_uuid"] = config.UUID
 	serviceVars["keep_for"] = config.KeepFor
-	serviceVars = mapIcingaVariables(serviceVars, alert.Labels, "label_", l)
-	serviceVars = mapIcingaVariables(serviceVars, alert.Annotations, "annotation_", l)
-	serviceVars = addStaticIcingaVariables(serviceVars, config.StaticServiceVars, l)
+	serviceVars = mapIcingaVariables(serviceVars, alert.Labels, "label_", logger)
+	serviceVars = mapIcingaVariables(serviceVars, alert.Annotations, "annotation_", logger)
+	serviceVars = addStaticIcingaVariables(serviceVars, config.StaticServiceVars, logger)
 
 	// Create service attrs object
 	serviceData := icinga2.Service{
@@ -137,7 +137,7 @@ func createServiceData(hostname string,
 	// Check if this is a heartbeat service. Adjust serviceData
 	// accordingly
 	if heartbeatInterval.Seconds() > 0.0 {
-		l.Infof("Creating alert as heartbeat with check interval %v", heartbeatInterval)
+		logger.Info(fmt.Sprintf("Creating alert as heartbeat with check interval %v", heartbeatInterval))
 		// Set dummy text to message annotation on alert
 		serviceData.Vars["dummy_text"] = alert.Annotations["message"]
 		// Set exitStatus for missed heartbeat to Alert's severity
@@ -162,13 +162,13 @@ func updateOrCreateService(icinga icinga2.Client,
 	alert template.Alert,
 	c config.Configuration) (icinga2.Service, error) {
 
-	l := c.GetLogger()
+	logger := c.GetLogger()
 
 	// Check if this alert is a heartbeat alert and extract interval if so
 	heartbeatInterval := time.Duration(0)
 	if val, ok := alert.Labels["heartbeat"]; ok {
 		if alert.Status == "resolved" {
-			l.Infof("Not processing resolved heartbeat for %v", serviceName)
+			logger.Info(fmt.Sprintf("Not processing resolved heartbeat for %v", serviceName))
 			return icinga2.Service{}, nil
 		}
 		interval, err := time.ParseDuration(val)
@@ -184,7 +184,7 @@ func updateOrCreateService(icinga icinga2.Client,
 	icingaSvc, err := icinga.GetService(serviceData.FullName())
 	// update or create service, depending on whether object exists
 	if err == nil {
-		l.Infof("updating service: %+v\n", icingaSvc.Name)
+		logger.Info(fmt.Sprintf("updating service: %+v\n", icingaSvc.Name))
 
 		// Templates needs to be ignored if the service is already created due to the Error:
 		// Attribute 'templates' could not be set: Error: Attribute cannot be modified.
@@ -195,14 +195,14 @@ func updateOrCreateService(icinga icinga2.Client,
 			return serviceData, err
 		}
 	} else if status > 0 {
-		l.Infof("creating service: %+v with templates: %v\n", serviceName, serviceData.Templates)
+		logger.Info(fmt.Sprintf("creating service: %+v with templates: %v\n", serviceName, serviceData.Templates))
 
 		err := icinga.CreateService(serviceData)
 		if err != nil {
 			return serviceData, err
 		}
 	} else {
-		l.Infof("Not creating service %v; status = %v", serviceName, status)
+		logger.Info(fmt.Sprintf("Not creating service %v; status = %v", serviceName, status))
 		return icinga2.Service{}, nil
 	}
 	return serviceData, nil

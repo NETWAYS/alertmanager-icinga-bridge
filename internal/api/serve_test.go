@@ -14,7 +14,7 @@ import (
 func TestHealthz(t *testing.T) {
 	// grab mock config
 	s := &ServeCommand{}
-	s.logger = config.MockLogger(1)
+	s.logger = config.MockLogger("info")
 
 	assert := assert.New(t)
 

@@ -23,16 +23,16 @@ func extractDowntime(downtimes []icinga2.Downtime, svcName string) (icinga2.Down
 
 // collectService cleans up a single service that is managed by this alertmanager-icinga-bridge
 func collectService(svc icinga2.Service, c config.Configuration, downtimes []icinga2.Downtime) error {
-	l := c.GetLogger()
+	logger := c.GetLogger()
 	icinga := c.GetIcingaClient()
 
 	_, heartbeat := svc.Vars["label_heartbeat"]
 	_, downtimed := extractDowntime(downtimes, svc.Name)
 	if heartbeat && !downtimed {
-		l.V(2).Infof(fmt.Sprintf("[Collect] Skipping heartbeat %v: not downtimed", svc.Name))
+		logger.Info(fmt.Sprintf("[Collect] Skipping heartbeat %v: not downtimed", svc.Name))
 		return nil
 	} else if svc.State > 0 && !heartbeat {
-		l.V(2).Infof(fmt.Sprintf("[Collect] Skipping service %v: state=%v, downtimed=%v",
+		logger.Info(fmt.Sprintf("[Collect] Skipping service %v: state=%v, downtimed=%v",
 			svc.Name, svc.State, downtimed))
 		return nil
 	}
@@ -43,13 +43,13 @@ func collectService(svc icinga2.Service, c config.Configuration, downtimes []ici
 	lastChange := time.Unix(0, lastChangeUnixNs)
 	serviceAge := time.Since(lastChange)
 	if serviceAge >= keepFor {
-		l.V(2).Infof("[Collect] Deleting service %v: keep_for = %v; age = %v", svc.Name, keepFor, serviceAge)
+		logger.Info(fmt.Sprintf("[Collect] Deleting service %v: keep_for = %v; age = %v", svc.Name, keepFor, serviceAge))
 		err := icinga.DeleteService(svc.FullName())
 		if err != nil {
-			l.Errorf(fmt.Sprintf("Error while deleting service: %v", err))
+			logger.Error(fmt.Sprintf("Error while deleting service: %v", err))
 		}
 	} else {
-		l.V(2).Infof("[Collect] Skipping service %v: keep_for = %v; age = %v", svc.Name, keepFor, serviceAge)
+		logger.Info(fmt.Sprintf("[Collect] Skipping service %v: keep_for = %v; age = %v", svc.Name, keepFor, serviceAge))
 	}
 	return nil
 }
@@ -57,8 +57,8 @@ func collectService(svc icinga2.Service, c config.Configuration, downtimes []ici
 // Collect runs a garbage collection cycle to clean up any old
 // alertmanager-icinga-bridge-managed service objects
 func Collect(ts time.Time, c config.Configuration) error {
-	l := c.GetLogger()
-	l.Infof("[Collect] Running garbage collection at ts=%v", ts)
+	logger := c.GetLogger()
+	logger.Info(fmt.Sprintf("[Collect] Running garbage collection at ts=%v", ts))
 	// Get all alertmanager-icinga-bridge services
 	icinga := c.GetIcingaClient()
 	hostname := c.GetConfig().HostName
@@ -66,30 +66,30 @@ func Collect(ts time.Time, c config.Configuration) error {
 		Filter: fmt.Sprintf(`match("%v", service.host_name)`, hostname),
 	})
 	if err != nil {
-		l.Errorf(fmt.Sprintf("[Collect] Error while listing services: %v", err))
+		logger.Error(fmt.Sprintf("[Collect] Error while listing services: %v", err))
 		return err
 	}
-	l.V(2).Infof("[Collect] Found %v services with host = %v", len(services), hostname)
+	logger.Info(fmt.Sprintf("[Collect] Found %v services with host = %v", len(services), hostname))
 	downtimes, err := icinga.ListDowntimes(icinga2.QueryFilter{
 		Filter: fmt.Sprintf(`match("%v", downtime.host_name)`, hostname),
 	})
 	if err != nil {
-		l.Errorf(fmt.Sprintf("[Collect] Error while listing downtimes: %v", err))
+		logger.Error(fmt.Sprintf("[Collect] Error while listing downtimes: %v", err))
 		return err
 	}
-	l.V(2).Infof("[Collect] Found %v downtimes with host = %v", len(downtimes), hostname)
+	logger.Info(fmt.Sprintf("[Collect] Found %v downtimes with host = %v", len(downtimes), hostname))
 	// Iterate through services, finding ones that are managed by this
 	// alertmanager-icinga-bridge and delete services which have transitioned to OK longer
 	// than keep_for ago
 	for _, svc := range services {
 		if svc.Vars["bridge_uuid"] == c.GetConfig().UUID {
-			l.Infof("[Collect] Found service %v with our bridge UUID", svc.Name)
+			logger.Info(fmt.Sprintf("[Collect] Found service %v with our bridge UUID", svc.Name))
 			err = collectService(svc, c, downtimes)
 			if err != nil {
-				l.Errorf(fmt.Sprintf("[Collect] Error garbage-collecting service: %v", err))
+				logger.Error(fmt.Sprintf("[Collect] Error garbage-collecting service: %v", err))
 			}
 		}
 	}
-	l.Infof("[Collect] Garbage collection completed in %v", time.Since(ts))
+	logger.Info(fmt.Sprintf("[Collect] Garbage collection completed in %v", time.Since(ts)))
 	return nil
 }

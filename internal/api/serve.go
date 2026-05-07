@@ -4,6 +4,7 @@ package api
 
 import (
 	"fmt"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -12,16 +13,15 @@ import (
 	"github.com/NETWAYS/alertmanager-icinga-bridge/internal/icinga2"
 
 	"github.com/alecthomas/kingpin/v2"
-	"github.com/bketelsen/logr"
 )
 
 // ServeCommand holds all the configuration and objects necessary to serve the webhook
 type ServeCommand struct {
 	port            int
-	logLevel        int
+	logLevel        string
 	config          config.Config
-	logger          logr.Logger
 	icingaClient    icinga2.Client
+	logger          *slog.Logger
 	heartbeatTicker *time.Ticker
 	gcTicker        *time.Ticker
 }
@@ -32,7 +32,7 @@ func (s *ServeCommand) GetConfig() *config.Config {
 }
 
 // GetLogger implements config.Configuration
-func (s *ServeCommand) GetLogger() logr.Logger {
+func (s *ServeCommand) GetLogger() *slog.Logger {
 	return s.logger
 }
 
@@ -42,7 +42,7 @@ func (s *ServeCommand) GetIcingaClient() icinga2.Client {
 }
 
 // SetLogger implements config.Configuration
-func (s *ServeCommand) SetLogger(logger logr.Logger) {
+func (s *ServeCommand) SetLogger(logger *slog.Logger) {
 	s.logger = logger
 }
 
@@ -53,31 +53,30 @@ func (s *ServeCommand) SetIcingaClient(client icinga2.Client) {
 
 func healthz(w http.ResponseWriter, r *http.Request, c config.Configuration) {
 	fmt.Fprint(w, "ok")
-	c.GetLogger().V(3).Infof("Config: %+v", c.GetConfig())
 }
 
 func (s *ServeCommand) heartbeat(ts time.Time) error {
 	icinga := s.GetIcingaClient()
 	config := s.GetConfig()
-	l := s.GetLogger()
+	logger := s.GetLogger()
 	_, err := icinga.GetHost(config.HostName)
 	if err != nil {
-		l.Errorf("heartbeat: unable to get servicehost: %v", err)
+		logger.Error("heartbeat: unable to get servicehost", "error", err.Error())
 		return err
 	}
 	svc, err := icinga.GetService(fmt.Sprintf("%v!heartbeat", config.HostName))
 	if err != nil {
-		l.Errorf("heartbeat: unable to get heartbeat service: %v", err)
+		logger.Error("heartbeat: unable to get heartbeat service", "error", err.Error())
 		return err
 	}
 	msg := fmt.Sprintf("OK: %v", ts.Format(time.RFC3339))
-	l.Infof("Sending heartbeat: '%v'", msg)
+	logger.Info(fmt.Sprintf("Sending heartbeat: '%v'", msg))
 	err = icinga.ProcessCheckResult(svc, icinga2.Action{
 		ExitStatus:   0,
 		PluginOutput: msg,
 	})
 	if err != nil {
-		l.Errorf("heartbeat: process_check_result: %v", err)
+		logger.Error("heartbeat: process_check_result", "error", err.Error())
 	}
 	return nil
 }
@@ -85,25 +84,25 @@ func (s *ServeCommand) heartbeat(ts time.Time) error {
 func (s *ServeCommand) startHeartbeat() error {
 	hbInterval := s.GetConfig().HeartbeatInterval
 	s.heartbeatTicker = time.NewTicker(hbInterval)
-	s.logger.Infof("Starting heartbeat: interval %v", hbInterval)
+	s.logger.Info(fmt.Sprintf("Starting heartbeat: interval %v", hbInterval))
 
 	go func() {
 		// Send initial heartbeat from goroutine to make server
 		// startup quicker
 		err := s.heartbeat(time.Now())
 		if err != nil {
-			s.logger.Errorf("Unable to send initial heartbeat: %v", err)
+			s.logger.Error("Unable to send initial heartbeat", "error", err.Error())
 		}
 
 		for ts := range s.heartbeatTicker.C {
 			if err := s.heartbeat(ts); err != nil {
-				s.logger.Errorf("sending heartbeat: %s", err)
+				s.logger.Error("sending heartbeat", "error", err.Error())
 
 				// In some rare cases there could be an Icinga2 reload for a config update and the API is not reachable.
 				// So, the switch off of the Config-Master would take in place, but we don't want an unnecessary switch
 				// to the secondary Icinga2 instance.
 				if s.config.Reconnect > 0 {
-					s.logger.Infof("Waiting %s for reconnect", s.config.Reconnect)
+					s.logger.Info(fmt.Sprintf("Waiting %s for reconnect", s.config.Reconnect))
 					time.Sleep(s.config.Reconnect)
 				}
 
@@ -116,14 +115,14 @@ func (s *ServeCommand) startHeartbeat() error {
 						erri := s.icingaClient.TestIcingaApi()
 
 						if erri == nil {
-							s.logger.Infof("Switching to new Icinga-API-URL: %v", url)
+							s.logger.Info(fmt.Sprintf("Switching to new Icinga-API-URL: %v", url))
 							break
 						} else {
 							continue
 						}
 					}
 				} else {
-					s.logger.Infof("Reconnect successful: %v", s.icingaClient.GetClientConfig().URL)
+					s.logger.Info(fmt.Sprintf("Reconnect successful: %v", s.icingaClient.GetClientConfig().URL))
 					continue
 				}
 			}
@@ -140,7 +139,7 @@ func (s *ServeCommand) startHeartbeat() error {
 					s.icingaClient.SetIcingaUrl(oldUrl)
 					continue
 				} else {
-					s.logger.Infof("Connecting to Icinga-Config-Master: %v", s.config.IcingaConfig.URL[0])
+					s.logger.Info(fmt.Sprintf("Connecting to Icinga-Config-Master: %v", s.config.IcingaConfig.URL[0]))
 					continue
 				}
 			}
@@ -152,11 +151,11 @@ func (s *ServeCommand) startHeartbeat() error {
 func (s *ServeCommand) startServiceGC() error {
 	gcInterval := s.GetConfig().GcInterval
 	s.gcTicker = time.NewTicker(gcInterval)
-	s.logger.Infof("Starting service garbage collector: interval %v", gcInterval)
+	s.logger.Info(fmt.Sprintf("Starting service garbage collector: interval %v", gcInterval))
 	go func() {
 		for ts := range s.gcTicker.C {
 			if err := gc.Collect(ts, s); err != nil {
-				s.logger.Error(err)
+				s.logger.Error("Errors collecting services", "error", err.Error())
 			}
 		}
 	}()
@@ -169,9 +168,9 @@ func (s *ServeCommand) run(ctx *kingpin.ParseContext) error {
 	http.HandleFunc("/webhook",
 		func(w http.ResponseWriter, r *http.Request) { Webhook(w, r, s) })
 
-	s.logger.Infof("UUID: %v", s.GetConfig().UUID)
-	s.logger.Infof("Keep for: %v", s.GetConfig().KeepFor)
-	s.logger.Infof("Icinga API: %s", s.GetIcingaClient().GetClientConfig().URL)
+	s.logger.Info(fmt.Sprintf("UUID: %v", s.GetConfig().UUID))
+	s.logger.Info(fmt.Sprintf("Keep for: %v", s.GetConfig().KeepFor))
+	s.logger.Info(fmt.Sprintf("Icinga API: %s", s.GetIcingaClient().GetClientConfig().URL))
 
 	if err := s.startHeartbeat(); err != nil {
 		return err
@@ -181,10 +180,10 @@ func (s *ServeCommand) run(ctx *kingpin.ParseContext) error {
 	}
 
 	listenAddress := fmt.Sprintf(":%d", s.port)
-	s.logger.Infof("listening on: %v", listenAddress)
+	s.logger.Info(fmt.Sprintf("listening on: %v", listenAddress))
 	alertManagerConfig := s.config.AlertManagerConfig
 	if alertManagerConfig.UseTLS {
-		s.logger.Infof("Using TLS: certificate=%v, key=%v", alertManagerConfig.TLSCertPath, alertManagerConfig.TLSKeyPath)
+		s.logger.Info(fmt.Sprintf("Using TLS: certificate=%v, key=%v", alertManagerConfig.TLSCertPath, alertManagerConfig.TLSKeyPath))
 		return http.ListenAndServeTLS(listenAddress, alertManagerConfig.TLSCertPath, alertManagerConfig.TLSKeyPath, nil)
 	}
 
@@ -198,7 +197,7 @@ func (s *ServeCommand) initialize(ctx *kingpin.ParseContext) error {
 }
 
 func ConfigureServeCommand(app *kingpin.Application) {
-	s := &ServeCommand{logLevel: 1,
+	s := &ServeCommand{logLevel: "info",
 		config: config.Config{
 			StaticServiceVars:    map[string]string{},
 			CustomSeverityLevels: map[string]string{},
@@ -208,7 +207,7 @@ func ConfigureServeCommand(app *kingpin.Application) {
 
 	// General configuration
 	serve.Flag("uuid", "Instance UUID").Envar("ALERTMANAGER_ICINGA_BRIDGE_UUID").Required().StringVar(&s.config.UUID)
-	serve.Flag("loglevel", "Loglevel").Envar("ALERTMANAGER_ICINGA_BRIDGE_LOG_LEVEL").Default("2").IntVar(&s.config.LogLevel)
+	serve.Flag("loglevel", "Loglevel").Envar("ALERTMANAGER_ICINGA_BRIDGE_LOG_LEVEL").Default("info").StringVar(&s.config.LogLevel)
 
 	// Icinga2 client configuration
 	serve.Flag("icinga_hostname", "Icinga Servicehost Name").Envar("ALERTMANAGER_ICINGA_BRIDGE_ICINGA_HOSTNAME").Required().StringVar(&s.config.HostName)

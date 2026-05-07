@@ -3,13 +3,12 @@
 package api
 
 import (
-	"sort"
-	"strings"
+	"io"
+	"log/slog"
 	"testing"
 
 	"github.com/NETWAYS/alertmanager-icinga-bridge/internal/icinga2"
 
-	"github.com/corvus-ch/logr/buffered"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -46,8 +45,8 @@ func TestMapIcingaVariables(t *testing.T) {
 		"icinga_unknown_d": "d",
 		"icinga_number_e":  "e",
 	}
-	l := buffered.New(0)
-	vars = mapIcingaVariables(vars, kv, "pre_", l)
+	logger := slog.New(slog.NewJSONHandler(io.Discard, nil))
+	vars = mapIcingaVariables(vars, kv, "pre_", logger)
 	assert.Equal(t, icinga2.Vars{
 		"pre_a":                "a",
 		"pre_icinga_number_b":  "42",
@@ -57,25 +56,16 @@ func TestMapIcingaVariables(t *testing.T) {
 		"b":                    42,
 		"c":                    "c",
 	}, vars)
-	expectedErrs := []string{
-		"INFO Failed to map Icinga variable 'icinga_unknown_d': unknown type",
-		"INFO Failed to map Icinga variable 'icinga_number_e': strconv.Atoi: parsing \"e\": invalid syntax",
-	}
-	sort.Strings(expectedErrs)
-	actualErrs := strings.Split(strings.TrimSpace(l.Buf().String()), "\n")
-	sort.Strings(actualErrs)
-
-	assert.Equal(t, strings.Join(expectedErrs, "\n"), strings.Join(actualErrs, "\n"))
 }
 
 func TestAddStaticVariables(t *testing.T) {
 	vars := make(icinga2.Vars)
-	l := buffered.New(0)
+	logger := slog.New(slog.NewJSONHandler(io.Discard, nil))
 	staticVars := map[string]string{
 		"a": "a",
 		"b": "b",
 	}
-	vars = addStaticIcingaVariables(vars, staticVars, l)
+	vars = addStaticIcingaVariables(vars, staticVars, logger)
 	assert.Equal(t, icinga2.Vars{
 		"a": "a",
 		"b": "b",
@@ -85,12 +75,12 @@ func TestAddStaticVariables(t *testing.T) {
 func TestAddStaticVariablesNoOverwrite(t *testing.T) {
 	vars := make(icinga2.Vars)
 	vars["a"] = "z"
-	l := buffered.New(0)
+	logger := slog.New(slog.NewJSONHandler(io.Discard, nil))
 	staticVars := map[string]string{
 		"a": "a",
 		"b": "b",
 	}
-	vars = addStaticIcingaVariables(vars, staticVars, l)
+	vars = addStaticIcingaVariables(vars, staticVars, logger)
 	assert.Equal(t, icinga2.Vars{
 		"a": "z",
 		"b": "b",

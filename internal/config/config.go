@@ -6,17 +6,14 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	"io"
+	"log/slog"
 	"os"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/NETWAYS/alertmanager-icinga-bridge/internal/icinga2"
-
-	"github.com/bketelsen/logr"
-	"github.com/corvus-ch/logr/buffered"
-	log "github.com/corvus-ch/logr/logrus"
-	"github.com/sirupsen/logrus"
 )
 
 type icingaConfig struct {
@@ -33,8 +30,8 @@ type icingaConfig struct {
 type Configuration interface {
 	GetConfig() *Config
 
-	GetLogger() logr.Logger
-	SetLogger(logger logr.Logger)
+	GetLogger() *slog.Logger
+	SetLogger(logger *slog.Logger)
 
 	GetIcingaClient() icinga2.Client
 	SetIcingaClient(icinga icinga2.Client)
@@ -57,7 +54,7 @@ type Config struct {
 	GcInterval               time.Duration
 	AlertManagerConfig       alertManagerConfig
 	HeartbeatInterval        time.Duration
-	LogLevel                 int
+	LogLevel                 string
 	DisplayNameAsServiceName bool
 	KeepFor                  time.Duration
 	CAData                   string
@@ -72,18 +69,18 @@ type Config struct {
 }
 
 func ConfigInitialize(configuration Configuration) {
-	l := configuration.GetLogger()
+	logger := configuration.GetLogger()
 	config := configuration.GetConfig()
 
 	// do first init of Logger and IcingaClient
-	l.Infof("Configuring logger with LogLevel=%v", config.LogLevel)
+	logger.Info("Configuring logger", "level", config.LogLevel)
 	configuration.SetLogger(NewLogger(config.LogLevel))
 	// Refresh local reference to logger after setup
-	l = configuration.GetLogger()
+	logger = configuration.GetLogger()
 
-	icinga, err := newIcingaClient(config, l)
+	icinga, err := newIcingaClient(config, logger)
 	if err != nil {
-		l.Errorf("Unable to create new icinga client: %s", err)
+		logger.Error("Unable to create new icinga client", "error", err.Error())
 	} else {
 		configuration.SetIcingaClient(icinga)
 	}
@@ -114,7 +111,23 @@ func ConfigInitialize(configuration Configuration) {
 
 }
 
-func makeCertPool(c *Config, l logr.Logger) (*x509.CertPool, error) {
+// getLogLevel returns the corresponding slog.Level given a string
+func getLogLevel(level string) slog.Level {
+	switch level {
+	case "debug":
+		return slog.LevelDebug
+	case "info":
+		return slog.LevelInfo
+	case "warn":
+		return slog.LevelWarn
+	case "error":
+		return slog.LevelError
+	default:
+		return slog.LevelInfo
+	}
+}
+
+func makeCertPool(c *Config, logger *slog.Logger) (*x509.CertPool, error) {
 	rootCAs := x509.NewCertPool()
 	if ok := rootCAs.AppendCertsFromPEM([]byte(c.CAData)); !ok {
 		return nil, fmt.Errorf("No certs appended")
@@ -122,13 +135,13 @@ func makeCertPool(c *Config, l logr.Logger) (*x509.CertPool, error) {
 	return rootCAs, nil
 }
 
-func newIcingaClient(c *Config, l logr.Logger) (icinga2.Client, error) {
+func newIcingaClient(c *Config, logger *slog.Logger) (icinga2.Client, error) {
 	rootCAs, err := x509.SystemCertPool()
 	if err != nil && c.CAData == "" {
 		return nil, fmt.Errorf("could not load system rootCA and no CA provided: %w", err)
 	}
 	if c.CAData != "" {
-		rootCAs, err = makeCertPool(c, l)
+		rootCAs, err = makeCertPool(c, logger)
 		if err != nil {
 			return nil, err
 		}
@@ -196,31 +209,24 @@ func newIcingaClient(c *Config, l logr.Logger) (icinga2.Client, error) {
 	return client, nil
 }
 
-func NewLogger(verbosity int) logr.Logger {
-	jf := new(logrus.JSONFormatter)
-	ll := &logrus.Logger{
-		Out:       os.Stdout,
-		Formatter: jf,
-		Hooks:     make(logrus.LevelHooks),
-		Level:     logrus.DebugLevel,
-	}
-	return log.New(verbosity, ll)
+func NewLogger(level string) *slog.Logger {
+	return slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: getLogLevel(level)}))
 }
 
-func MockLogger(verbosity int) logr.Logger {
-	return buffered.New(verbosity)
+func MockLogger(level string) *slog.Logger {
+	return slog.New(slog.NewJSONHandler(io.Discard, nil))
 }
 
 type MockConfiguration struct {
 	config       Config
-	logger       logr.Logger
+	logger       *slog.Logger
 	icingaClient icinga2.Client
 }
 
 func (c *MockConfiguration) GetConfig() *Config {
 	return &c.config
 }
-func (c *MockConfiguration) GetLogger() logr.Logger {
+func (c *MockConfiguration) GetLogger() *slog.Logger {
 	return c.logger
 }
 func (c *MockConfiguration) GetIcingaClient() icinga2.Client {
@@ -229,7 +235,7 @@ func (c *MockConfiguration) GetIcingaClient() icinga2.Client {
 func (c *MockConfiguration) SetConfig(config Config) {
 	c.config = config
 }
-func (c *MockConfiguration) SetLogger(logger logr.Logger) {
+func (c *MockConfiguration) SetLogger(logger *slog.Logger) {
 	c.logger = logger
 }
 func (c *MockConfiguration) SetIcingaClient(icinga icinga2.Client) {
@@ -256,7 +262,7 @@ func NewMockConfiguration(verbosity int) Configuration {
 			BearerToken: "aaaaaa",
 		},
 		HeartbeatInterval:        1 * time.Minute,
-		LogLevel:                 2,
+		LogLevel:                 "error",
 		DisplayNameAsServiceName: false,
 		KeepFor:                  5 * time.Minute,
 		CAData:                   "",
