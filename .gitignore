@@ -1,3 +1,11 @@
-config.yaml
+.idea
+\#*
+.\#*
+TODO*
+
 alertmanager-icinga-bridge
-docker-poc/data
+config.yaml
+coverage.html
+coverage.out
+dist/
+vendor/
