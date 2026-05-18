@@ -1,40 +1,18 @@
-# Authors:
-# Simon Gerber <simon.gerber@vshn.ch>
-#
-# License:
-# Copyright (c) 2019, VSHN AG, <info@vshn.ch>
-# Licensed under "BSD 3-Clause". See LICENSE file.
+// SPDX-License-Identifier: BSD-3-Clause
 
-#####################
-# STEP 1 build binary
-#####################
-FROM golang:1.20 as builder
+FROM docker.io/golang:latest as builder
 
-ARG BINARY_VERSION
-
-# Workdir must be outside of GOPATH because of go mod usage
-WORKDIR /src/alertmanager-icinga-bridge
-
-# Download modules for leveraging docker build cache
-COPY go.mod go.sum ./
-RUN go mod download
-
-# Add code
+WORKDIR /go/src/app
 COPY . .
 
-# Run tests and build alertmanager-icinga-bridge
-RUN make test
-RUN make build
+RUN CGO_ENABLED=0 go build -o /go/bin/alertmanager-icinga-bridge
 
-############################
-# STEP 2 build runtime image
-############################
 FROM gcr.io/distroless/static:nonroot
 
 WORKDIR /
 
-COPY --from=builder /src/alertmanager-icinga-bridge/alertmanager-icinga-bridge /usr/local/bin/
+COPY --from=builder /go/bin/alertmanager-icinga-bridge /
 
 EXPOSE 8888
 
-ENTRYPOINT ["/usr/local/bin/alertmanager-icinga-bridge"]
+ENTRYPOINT ["/alertmanager-icinga-bridge"]
