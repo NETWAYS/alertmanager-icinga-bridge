@@ -1,0 +1,21 @@
+[Unit]
+Description=Alertmanager Icinga Bridge
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+Restart=always
+User=alertmanager-icinga-bridge
+EnvironmentFile=/etc/default/alertmanager-icinga-bridge
+ExecStart=/usr/local/bin/alertmanager-icinga-bridge $CUSTOM_ARGS
+
+# Sandboxing
+ProtectSystem=full
+ProtectHome=yes
+PrivateDevices=yes
+NoNewPrivileges=yes
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target

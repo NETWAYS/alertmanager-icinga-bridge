@@ -1,0 +1,32 @@
+---
+name: "alertmanager-icinga-bridge"
+arch: "amd64"
+platform: "linux"
+version: "${VERSION}"
+section: "base"
+priority: "optional"
+depends: []
+maintainer: "NETWAYS <info@netways.de>"
+description: |
+  A Prometheus Alertmanager to Icinga integration via webhooks
+homepage: "https://netways.de/"
+license: "BSD-3-Clause"
+
+scripts:
+  postinstall: ./contrib/postinstall.sh
+
+contents:
+- src: contrib/alertmanager-icinga-bridge.env
+  dst: /etc/default/alertmanager-icinga-bridge
+  file_info:
+    mode: 0644
+
+- src: contrib/alertmanager-icinga-bridge.service
+  dst: /usr/lib/systemd/system/alertmanager-icinga-bridge.service
+  file_info:
+    mode: 0644
+
+- src: dist/alertmanager-icinga-bridge
+  dst: /usr/local/bin/alertmanager-icinga-bridge
+  file_info:
+    mode: 0755

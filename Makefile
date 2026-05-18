@@ -20,6 +20,9 @@ release-snapshot:
 release:
 	mkdir -p dist;\
 	CGO_ENABLED=0 go build -ldflags="-s -w -X main.version=$(VERSION) -X main.commit=$(COMMIT) -X main.date=$(DATE)" -o dist/alertmanager-icinga-bridge
+package-deb: release
+	mkdir -p dist/ &&\
+	nfpm pkg --packager deb --target dist/
 lint:
 	go fmt $(go list ./... | grep -v /vendor/)
 vet:
