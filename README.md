@@ -75,6 +75,10 @@ Flags:
                                            ($ALERTMANAGER_ICINGA_BRIDGE_STATIC_SERVICE_VAR)
 ```
 
+Most flags can be set with environment variables, refer to the help to see which flags.
+
+The tool respects the environment variables HTTP_PROXY, HTTPS_PROXY and NO_PROXY.
+
 ## Integration to Prometheus Alertmanager
 
 The `/webhook` endpoint accepts alerts from the Alertmanager's [generic webhook receiver](https://prometheus.io/docs/alerting/latest/configuration/#webhook_config).
