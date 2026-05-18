@@ -1,13 +1,13 @@
 # Alertmanager-Icinga-Bridge
 
-Alertmanager to Icinga bridge acts on webhooks which it receives from Alertmanager and forwards the alerts in
-those webhooks to Icinga.
+The Alertmanager to Icinga bridge can receive alerts from the Prometheus Alertmanager's generic webhook receiver and creates Icinga Services for these alerts.
+
+## Installation
+
+* Install `alertmanager-icinga-bridge`
+* Create an Icinga host and API user for Alertmanager-Icinga-Bridge
 
 ## Usage
-
-Alertmanager-Icinga-Bridge gets started from the command line and takes its configuration
-either as options or as environment variables. Use `alertmanager-icinga-bridge --help` to get a
-list of all available configuration parameters.
 
 When started, Alertmanager-Icinga-Bridge listens to HTTP requests on the following paths:
 
@@ -17,156 +17,135 @@ When started, Alertmanager-Icinga-Bridge listens to HTTP requests on the followi
 
 ## Configuration
 
-Mandatory
+```
+Usage: alertmanager-icinga-bridge --id=STRING --icinga-url=ICINGA-URL,... --icinga-hostname=STRING --icinga-password=STRING --icinga-user=STRING --bearer-token=STRING [flags]
 
-* `--uuid`/`ALERTMANAGER_ICINGA_BRIDGE_UUID`:
-  UUID which identifies the Alertmanager-Icinga-Bridge instance.
-* `--icinga_hostname`/`ALERTMANAGER_ICINGA_BRIDGE_ICINGA_HOSTNAME`:
-  Name of the Servicehost in Icinga2.
-* `--icinga_url`/`ALERTMANAGER_ICINGA_BRIDGE_ICINGA_URL`:
-  URL of the Icinga API. It's possible to specify one or more URLs.
-  The Parameter content will be split on newline character `\n`, e.g. `"http://example.com:5665\nhttp://example2.com:5665"` will configure two masters at `http://example.com:5665` and `http://example2.com:5665`.
-  Please keep in mind that the first URL will be the Icinga-Config-Master.
-* `--icinga_username`/`ALERTMANAGER_ICINGA_BRIDGE_ICINGA_USERNAME`:
-  Authentication against Icinga2 API.
-* `--icinga_password`/`ALERTMANAGER_ICINGA_BRIDGE_ICINGA_PASSWORD`:
-  Authentication against Icinga2 API.
+alertmanager-icinga-bridge takes in Alertmanager alerts through a webhook, translates them into Icinga2 services and posts
+them using the Icinga API
 
-Optional
+Flags:
+--help                                     Show context-sensitive help.
+--id=STRING                                Instance ID ($ALERTMANAGER_ICINGA_BRIDGE_ID)
+--loglevel="info"                          Loglevel ($ALERTMANAGER_ICINGA_BRIDGE_LOGLEVEL)
+--icinga-url=ICINGA-URL,...                Icinga API URL (can be repeated) ($ALERTMANAGER_ICINGA_BRIDGE_ICINGA_URL)
+--icinga-hostname=STRING                   Icinga host name to manage services for
+                                           ($ALERTMANAGER_ICINGA_BRIDGE_ICINGA_HOSTNAME)
+--disable-keep-alives                      Disable HTTP keepalives ($ALERTMANAGER_ICINGA_BRIDGE_DISABLE_KEEPALIVES)
+--display-name-as-service-name             Leave display name as service name
+                                           ($ALERTMANAGER_ICINGA_BRIDGE_DISPLAY_NAME_AS_SERVICE_NAME)
+--icinga-insecure-tls                      Skip Icinga TLS verification
+                                           ($ALERTMANAGER_ICINGA_BRIDGE_ICINGA_INSECURE_TLS)
+--icinga-ca-file=STRING                    Path of a custom CA certificate to use when connecting to the Icinga API
+                                           ($ALERTMANAGER_ICINGA_BRIDGE_ICINGA_CA)
+--icinga-password=STRING                   Icinga Password ($ALERTMANAGER_ICINGA_BRIDGE_ICINGA_PASSWORD)
+--icinga-user=STRING                       Icinga Username ($ALERTMANAGER_ICINGA_BRIDGE_ICINGA_USERNAME)
+--custom-severity-levels=KEY=VALUE;...     Add or override the default mapping of Severity Levels
+                                           to Service States (Severity_Level=Service_State)
+                                           ($ALERTMANAGER_ICINGA_BRIDGE_ALERTMANAGER_CUSTOM_SEVERITY_LEVELS)
+--gc-interval=15m                          Garbage collection interval for old alerts
+                                           ($ALERTMANAGER_ICINGA_BRIDGE_GC_INTERVAL)
+--heartbeat-interval=1m                    The heartbeat interval for the bridge self-monitoring service
+                                           ($ALERTMANAGER_ICINGA_BRIDGE_HEARTBEAT_INTERVAL)
+--heartbeat-service="heartbeat"            The name for the bridge self-monitoring service
+                                           ($ALERTMANAGER_ICINGA_BRIDGE_HEARTBEAT_SERVICE)
+--listen-addr="127.0.0.1:8888"             Listening address for the incoming Alertmanager webhooks
+                                           ($ALERTMANAGER_ICINGA_BRIDGE_LISTEN_ADDR)
+--bearer-token=STRING                      Bearer token for incoming requests ($ALERTMANAGER_ICINGA_BRIDGE_BEARER_TOKEN)
+--tls-cert-path=STRING                     Path of a certificate file for TLS-enabled webhook endpoint (full chain)
+                                           ($ALERTMANAGER_ICINGA_BRIDGE_TLS_CERT)
+--tls-key-path=STRING                      Path of a private key file for TLS-enabled webhook endpoint
+                                           ($ALERTMANAGER_ICINGA_BRIDGE_TLS_KEY)
+--check-command="dummy"                    Specify Icinga check command during service creation
+                                           ($ALERTMANAGER_ICINGA_BRIDGE_SERVICE_CHECKS_COMMAND)
+--active-checks                            Create Icinga services as active checks
+                                           ($ALERTMANAGER_ICINGA_BRIDGE_SERVICE_CHECKS_ACTIVE)
+--plugin-output-by-states                  Enable dynamic selection of plugin output annotation based on Service State
+                                           ($ALERTMANAGER_ICINGA_BRIDGE_PLUGINOUTPUT_BY_STATES)
+--max-check-attempts=1                     The maximum number of checks which are executed before changing to a hard
+                                           state ($ALERTMANAGER_ICINGA_BRIDGE_SERVICE_MAX_CHECK_ATTEMPTS)
+--templates=generic-service,...            Create Icinga services with the given template (can be repeated)
+                                           ($ALERTMANAGER_ICINGA_BRIDGE_SERVICE_TEMPLATE)
+--plugin-output-annotations=message,...    List of Annotation names to be used to set the plugin output for the Icinga
+                                           Service ($ALERTMANAGER_ICINGA_BRIDGE_PLUGINOUTPUT_ANNOTATIONS)
+--checks-interval=12h                      Interval (in seconds) to be used for Icinga check_interval and retry_interval
+                                           ($ALERTMANAGER_ICINGA_BRIDGE_SERVICE_CHECKS_INTERVAL)
+--keep-for=168h                            How long to keep old alerts around after they have been resolved
+                                           ($ALERTMANAGER_ICINGA_BRIDGE_KEEP_FOR)
+--static-service-vars=KEY=VALUE;...        A variable to be set on each Icinga service (variable=value, can be repeated)
+                                           ($ALERTMANAGER_ICINGA_BRIDGE_STATIC_SERVICE_VAR)
+```
 
-* `--loglevel`/`ALERTMANAGER_ICINGA_BRIDGE_LOG_LEVEL`:
-  Integer to control verbosity of logging (default: 2).
-* `--icinga_insecure_tls`/`ALERTMANAGER_ICINGA_BRIDGE_ICINGA_INSECURE_TLS`:
-  If true, disable strict TLS checking of Icinga2 API SSL certificate (default: false).
-* `--icinga_disable_keepalives`/`ALERTMANAGER_ICINGA_BRIDGE_ICINGA_DISABLE_KEEPALIVES`:
-  If true, disable http keep-alives with Icinga2 API and will only use the connection to the server for a single HTTP request (default: false).
-* `--icinga_display_name_as_service_name`/`ALERTMANAGER_ICINGA_BRIDGE_ICINGA_DISPLAY_NAME_AS_SERVICE_NAME`:
-  If true, will leave display name same as service name. Useful for users who monitor alerts in Nagstamon (default: false).
-* `--icinga_debug`/`ALERTMANAGER_ICINGA_BRIDGE_ICINGA_DEBUG`:
-  If true, enable debugging mode in Icinga client (default: false).
-* `--icinga_gc_interval`/`ALERTMANAGER_ICINGA_BRIDGE_ICINGA_GC_INTERVAL`:
-  Interval to run Garbage collection of recovered alerts in Icinga (default 15m).
-* `--icinga_heartbeat_interval`/`ALERTMANAGER_ICINGA_BRIDGE_ICINGA_HEARTBEAT_INTERVAL`:
-  Interval to send heartbeat to Icinga (default 60s).
-* `--icinga_keep_for`/`ALERTMANAGER_ICINGA_BRIDGE_ICINGA_KEEP_FOR`:
-  How long to keep Icinga2 services around after they transition to state OK (default 168h).
-* `--icinga_ca`/`ALERTMANAGER_ICINGA_BRIDGE_ICINGA_CA`:
-  A PEM string of the trusted CA certificate for the Icinga2 API certificate.
-* `--icinga_service_checks_active`/`ALERTMANAGER_ICINGA_BRIDGE_ICINGA_SERVICE_CHECKS_ACTIVE`:
-  Use active checks for created icinga services to leverage on Alertmanager resend interval to manage stale checks (default: false).
-* `--icinga_service_checks_command`/`ALERTMANAGER_ICINGA_BRIDGE_ICINGA_SERVICE_CHECKS_COMMAND`:
-  Name of the check command used in Icinga2 service creation (default: 'dummy').
-* `--icinga_service_checks_interval`/`ALERTMANAGER_ICINGA_BRIDGE_ICINGA_SERVICE_CHECKS_INTERVAL`:
-  Interval (in seconds) to be used for icinga `check_interval` and `retry_interval`.
-  This should be set to a multiple of alertmanager `repeat_interval` in case active checks are enabled (e.g. `1.1 < icinga_service_checks_interval/repeat_interval < 5`, default: 43200s).
-* `--icinga_service_max_check_attempts`/`ALERTMANAGER_ICINGA_BRIDGE_ICINGA_SERVICE_MAX_CHECKS_ATTEMPTS`:
-  The maximum number of checks which are executed before changing to a hard state.
-* `--icinga_service_template`/`ALERTMANAGER_ICINGA_BRIDGE_ICINGA_SERVICE_TEMPLATE`:
-  Creates an icinga service with the given template. It's possible to specify one or more service templates. (default: "generic-service").
-  The Parameter content will be split on newline character `\n`, e.g. `"generic-service\nexample-template"` creates a service with `generic-service` and `example-template`.
-  Please keep in mind that `generic-service` will be overwritten if the parameter is specified.
-* `--icinga_reconnect`/`ALERTMANAGER_ICINGA_BRIDGE_ICINGA_RECONNECT`:
-  If it's set, Alertmanager-Icinga-Bridge to waits for a reconnect instead of switching immediately to another URL.
-* `--alertmanager_port`/`ALERTMANAGER_ICINGA_BRIDGE_ALERTMANAGER_PORT`:
-  Port on which Alertmanager-Icinga-Bridge listens to incoming webhooks (default 8888).
-* `--alertmanager_bearer_token`/`ALERTMANAGER_ICINGA_BRIDGE_ALERTMANAGER_BEARER_TOKEN`:
-  Incoming webhook authentication. Can be either set via `Authorization` header or in the `token` URL query parameter.
-* `--alertmanager_tls_cert`/`ALERTMANAGER_ICINGA_BRIDGE_ALERTMANAGER_TLS_CERT`:
-  Path of certificate file for TLS-enabled webhook endpoint. Should contain the full chain.
-* `--alertmanager_tls_key`/`ALERTMANAGER_ICINGA_BRIDGE_ALERTMANAGER_TLS_KEY`:
-  Path of private key file for TLS-enabled webhook endpoint. TLS is enabled when both `TLS_CERT` and `TLS_KEY` are set.
-* `--alertmanager_pluginoutput_annotations`/`ALERTMANAGER_ICINGA_BRIDGE_ALERTMANAGER_PLUGINOUTPUT_ANNOTATIONS`:
-  The name of an annotation to retrieve the `plugin_output` from. Can be set multiple times in which case the first annotation with a value found is used.
-* `--alertmanager_pluginoutput_by_states`/`ALERTMANAGER_ICINGA_BRIDGE_ALERTMANAGER_PLUGINOUTPUT_BY_STATES`:
-  Enables support for dynamically selecting the Annotation name used for the Plugin Output based on the computed Service State.
-  See [Plugin Output](#plugin-output) for more details on this option.
-* `--alertmanager_custom_severity_levels`/`ALERTMANAGER_ICINGA_BRIDGE_ALERTMANAGER_CUSTOM_SEVERITY_LEVELS`:
-  Add or override the default mapping of the `severity` label of the Alert to an Icinga Service State.
-  Use the format `label_name=service_state`.
-  The `service_state` can be `0` for OK, `1` for Warning, `2` for Critical, and `3` for Unknown.
-  Can be set multiple times and you can also override the default values for the labels `warning` and `critical`.
-  The `severity` label is not case-sensitive.
+## Integration to Prometheus Alertmanager
 
-The environment variable names are generated from the command-line flags.
-The flag is uppercased and all `-` characters are replaced with `_`.
-Alertmanager-Icinga-Bridge uses the newline character `\n` to split flags that are allowed multiple times (like `ALERTMANAGER_ICINGA_BRIDGE_ALERTMANAGER_PLUGINOUTPUT_ANNOTATIONS`) into an array.
+The `/webhook` endpoint accepts alerts from the Alertmanager's [generic webhook receiver](https://prometheus.io/docs/alerting/latest/configuration/#webhook_config).
 
-## Integration to Prometheus/Alertmanager.
+Alertmanager-Icinga-Bridge expects a the following to be part of an alert.
 
-The `/webhook` accepts alerts in the [format of Alertmanager][webhook_format].
-The following Alertmanager configuration is an example taken from a Alertmanager-Icinga-Bridge installation on OpenShift.
+Alert fields:
+* `generatorURL`: Is mapped to the Icinga service `action_url`
 
-    global:
-      resolve_timeout: 5m
-    route:
-      group_wait: 30s
-      group_interval: 5m
-      repeat_interval: 12h
-      receiver: default
-      routes:
-      - match:
-          alertname: DeadMansSwitch
-        repeat_interval: 5m
-        receiver: deadmansswitch
-    receivers:
-    - name: default
-      webhook_configs:
-      - send_resolved: true
-        http_config:
-          bearer_token: "*****"
-        url: http://alertmanager.internal/webhook
-    - name: deadmansswitch
+Alert labels:
+* `alertname`: Is mapped to the Icinga service `display_name` (**required**)
+* `severity`: Must either be one of `warning` or `critical`, or values set via the `--custom-severity-levels` option (**required**)
 
-Alertmanager-Icinga-Bridge requires a set of information to be part of an alert.
-Without this information, the check generated in Icinga will be lacking.
+Alert annotations:
+* `description`: Is mapped to the Icinga service `notes` (**required**)
+* `message`: Is appended to the Icinga service `plugin_output` (**required**)
+* `runbook_url`: Is mapped to the Icinga service `notes_url` (**optional**)
 
-Required labels:
-
-* `severity`: Must be one of `warning` or `critical`, or any values set via the `--alertmanager_custom_severity_levels` option.
-* `alertname` mapped to `display_name`.
-
-Required annotations:
-
-* `description`: mapped to `notes`.
-* `message`: mapped to `plugin_output`.
-
-You can also use the `--alertmanager_pluginoutput_annotations` option to change the Annotation used for the `plugin_output` as well as the `--alertmanager_pluginoutput_by_states` option.
-See [Plugin Output](#plugin-output) for more details.
-
-Optional annotations:
-
-* `runbook_url`: mapped to `notes_url
-
-Infered fields:
-
-* `generatorURL`: mapped to `action_url`
+You can also use the `--plugin-output-annotations` option to change the annotation used for the `plugin_output` as well as the `--plugin-output-by-states` option.
 
 ### Plugin Output
 
-By default, Alertmanager-Icinga-Bridge will use the `message` Annotation to set the `plugin_output` in the Icinga Service.
+By default, Alertmanager-Icinga-Bridge will use the `message` annotation to set the `plugin_output` in the Icinga service.
 
-This can be changed by using the `--alertmanager_pluginoutput_annotations` to select either a different Annotation or to provide a list of Annotations where the first one with a value will be used.
+This can be changed by using the `--plugin-output-annotations` to select either a different annotation or to provide a list of annotations where the first one with a value will be used.
 
-Alternatively if you enable the `--alertmanager_pluginoutput_by_states` option then Alertmanager-Icinga-Bridge will take the Service State name (`ok`, `warning`, `critical`, or `unknown`) and suffix this to the Annotation name when looking up the Annotation to use for the Plugin Output (for example: `message_ok`).
+Alternatively, if you enable `--plugin-output-by-states` then the Alertmanager-Icinga-Bridge will take the service state name (`ok`, `warning`, `critical`, or `unknown`) and suffix this to the annotation name when looking up the annotation to use for the plugin output (e.g. `message_ok`).
 
-This allows you to configure multiple Annotations with different values that are then used with the corresponding Service State to set the Plugin Output.
+This allows you to configure multiple annotations with different values that are then used with the corresponding service state to set the plugin output.
 
-If an Annotation is not found for that specific Service State then Alertmanager-Icinga-Bridge will fall back ot just using the Annotation name as configured.
+If an annotation is not found for that specific service state then Alertmanager-Icinga-Bridge will fallback on using the annotation name as configured.
+
+### Example Alertmanager Configuration
+
+```yaml
+global:
+  resolve_timeout: 5m
+
+route:
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 12h
+  receiver: default
+  routes:
+  - match:
+      alertname: DeadMansSwitch
+    repeat_interval: 5m
+    receiver: deadmansswitch
+
+receivers:
+- name: default
+  webhook_configs:
+  - send_resolved: true
+    http_config:
+      bearer_token: "CHANGEME"
+    url: http://alertmanager.internal/webhook
+- name: deadmansswitch
+```
 
 ## Integration with Icinga
 
-### Icinga host
+You need to create an Icinga host which the Alertmanager-Icinga-Bridge can use to manage service's for.
 
-You need to create an Icinga service host which Alertmanager-Icinga-Bridge can use.
-Alertmanager-Icinga-Bridge is designed to expect that it has full control over one service host in Icinga.
-Therefore, you should create a service host for each Alertmanager-Icinga-Bridge instance which you're running.
+Alertmanager-Icinga-Bridge expects that it has full control over this host.
+Therefore, you should create a host for each Alertmanager-Icinga-Bridge instance which you're running.
 
-Each service host should look as shown below.
-You can add additional configurations (such as host variables) as you like.
+Example Icinga host:
 
 ```
-object Host "alertmanager_cluster.example.com"  {
-  display_name = "Alertmanager-Icinga-Bridge alertmanager_cluster.example.com"
+object Host "alertmanager.internal"  {
+  display_name = "Alertmanager-Icinga-Bridge Example"
   check_command = "dummy"
   enable_passive_checks = false
   enable_perfdata = false
@@ -184,54 +163,55 @@ template Service "generic-service" {
 
 ### Icinga API user
 
-We recommend that you create an API user per Icinga service host.
-This naturally ensures that you create an API user per Alertmanager-Icinga-Bridge instance, since you should have a service host per Alertmanager-Icinga-Bridge instance.
-In that case, you can restrict the API user's permissions to only interact with the service host belonging to the Alertmanager-Icinga-Bridge instance as shown below.
+We recommend that you create an API user per Icinga host.
+This ensures that you create an API user per Alertmanager-Icinga-Bridge instance.
+
+In that case, you can restrict the API user's permissions to only interact with the host belonging to the Alertmanager-Icinga-Bridge:
 
 ```
-object ApiUser "alertmanager_cluster.example.com"  {
-  password = "verysecretpassword"
+object ApiUser "alertmanager.internal"  {
+  password = "CHANGEME"
+
   permissions = [
   {
     permission = "objects/query/*"
-    filter = {{ host.name == "alertmanager_cluster.example.com" }}
+    filter = {{ host.name == "alertmanager.internal" }}
   },
   {
     permission = "objects/create/service"
-    filter = {{ host.name == "alertmanager_cluster.example.com" }}
+    filter = {{ host.name == "alertmanager.internal" }}
   },
   {
     permission = "objects/modify/service"
-    filter = {{ host.name == "alertmanager_cluster.example.com" }}
+    filter = {{ host.name == "alertmanager.internal" }}
   },
   {
     permission = "objects/delete/service"
-    filter = {{ host.name == "alertmanager_cluster.example.com" }}
+    filter = {{ host.name == "alertmanager.internal" }}
   },
   {
     permission = "actions/process-check-result"
-    filter = {{ host.name == "alertmanager_cluster.example.com" }}
+    filter = {{ host.name == "alertmanager.internal" }}
   }, ]
 }
 ```
 
-Note that you don't have to use the same name for the API user as for its associated service host.
-However, you have to make sure that you compare `host.name` to the name of the service host for which the API user should have permissions.
+Note that you don't have to use the same name for the API user as for its associated  host.
+However, you have to make sure that you compare `host.name` to the name of the service host for which the API user has permissions.
 
-### Garbage Collection
+## Automatic Service Cleanup (Garbage Collection)
 
-Service objects in Icinga will get garbage collected (aka deleted) on a regular basis, following these rules:
+Service objects in Icinga will get removed on a regular basis, following these rules:
 
-* Service object is in OK state
-* Last transition to OK state was more than "keep_for" ago
-* UUID of app matches "vars.bridge_uuid"
+* Service object is in `OK` state
+* Last transition to `OK` state was more than `--keep-for` ago
+* `ID` the Alertmanager-Icinga-Bridge instances matches the service's `vars.bridge_uuid`
 
-All state needed for doing garbage collection is stored in Icinga service variables.
+All state for this garbage collection is stored in Icinga service variables.
 
-### Alertmanager-Icinga-Bridge Heartbeat
+## Alertmanager-Icinga-Bridge Heartbeat
 
-On startup, Alertmanager-Icinga-Bridge checks if the matching heartbeat service is available in Icinga, otherwise it exits with a fatal error.
-During operation, Alertmanager-Icinga-Bridge regularly posts its state to the heartbeat service.
+The Alertmanager-Icinga-Bridge will regularly send a passive check result to a predefined heartbeat service.
 If no state update was provided, Icinga automatically marks the check as UNKNOWN.
 
 You need to configure the following service in Icinga:
@@ -253,43 +233,44 @@ object Service "heartbeat" {
   }}
 
   /* This must match the name of the host object for the Alertmanager-Icinga-Bridge instance */
-  host_name = "alertmanager_cluster.example.com"
+  host_name = "alertmanager.internal"
 }
 ```
 
-### Custom Variables
+## Custom Variables
 
-All labels and annotations will be mapped to custom variables.
-Keys of Labels will be prefixed with `label_` and keys of annotations with `annotation_`.
+All alert labels and annotations will be mapped to custom variables.
+Keys of labels will be prefixed with `label_` and keys of annotations with `annotation_`.
 
-If the key an annotation or label starts with `icinga_` it will also be added as custom variable but without any prefix.
-Since all labels and annotations will be strings, a type information needs to be provided so that a conversion can be done accordingly.
-This is done by adding the type as part of the prefix (`icinga_<type>_`). Current supported types are `number` and `string`.
+If the key an annotation or label starts with `icinga_` it will also be added as custom variable without any prefix.
+
+Since all labels and annotations are strings, a type information can be provided.
+This is done by adding the type as part of the prefix (`icinga_<type>_`).
+
+Current supported types are `number` and `string`.
 
 Examples:
 
-* `foo` -> `label_foo` or an `anotation_foo`.
-* `icinga_string_foo` -> label/annotation named `foo` with value is passed
-  as is.
-* `icinga_number_bar` -> label/annotation named `bar` with its value is
-  converted to an integer number.
+| Alert      | Icinga      |
+| ---------- | ----------- |
+| Label: `foo: bar` | Custom Var: `label_foo = bar` |
+| Annotation: `foo: bar` | Custom Var: `annotation_foo = bar` |
+| label: `icinga_string_foo: bar` | Custom Var: `foo = bar` |
+| Annotation: `icinga_string_foo: bar` | Custom Var: `foo = bar` |
+| label: `icinga_number_foo: 123` | Custom Var: `foo = 123` |
+| Annotation: `icinga_number_foo: 123` | Custom Var: `foo = 123` |
 
 In case there is a label and an annotation with the `icinga_<type>` prefix, the value of the annotation will take precedence in the resulting set of custom variables.
 
-### Heartbeat Services
+## Heartbeat Services
 
-Alertmanager-Icinga-Bridge supports creating heartbeat services in Icinga.
-This can be used to map alerts like the `DeadMansSwitch` which comes with `prometheus-operator` and signals that the whole Prometheus stack is healthy.
+Alertmanager-Icinga-Bridge supports creating "heartbeat services" in Icinga.
+This can be used to map alerts like a `DeadMansSwitch`. In Prometheus a "watchdog" or "dead man's switch" is an alert that is always firing to ensure alerting pipeline is working.
 
-In order for Alertmanager-Icinga-Bridge to treat an alert as a heartbeat, the alert must have a label `heartbeat`.
-Alertmanager-Icinga-Bridge will try to parse the value of that label as a [Go duration].
+To treat an alert as a "heartbeat" the alert must have a label `heartbeat` with a [Golang duration](https://pkg.go.dev/time#ParseDuration) as value (e.g. `heartbeat: "1d"`).
 
-If the value is parsed successfully, Alertmanager-Icinga-Bridge will create an Icinga service check with active checks enabled and with the check interval set to the parsed duration plus ten percent.
-We add ten percent to the parsed duration to account for network latencies etc., which could otherwise lead to flapping heartbeat checks.
-
-[Go duration]: https://golang.org/pkg/time/#ParseDuration
-
-[webhook_format]: https://prometheus.io/docs/alerting/configuration/#webhook_config.
+The Alertmanager-Icinga-Bridge will create an Icinga service check with active checks enabled and with the check interval set to the parsed duration.
+We add 10% to the parsed duration to account for network latency etc., which could otherwise lead to flapping heartbeat checks.
 
 # Thanks
 
