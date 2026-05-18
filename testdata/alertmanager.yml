@@ -1,0 +1,16 @@
+receivers:
+  - name: 'alertmanager-icinga-bridge'
+    webhook_configs:
+      - url: 'http://localhost:8888/webhook'
+        send_resolved: true
+        http_config:
+          authorization:
+            type: 'Bearer'
+            credentials: 'CHANGEME'
+
+route:
+  group_by: ['alertname']
+  group_wait: 10s
+  group_interval: 1m
+  repeat_interval: 2m
+  receiver: 'alertmanager-icinga-bridge'
