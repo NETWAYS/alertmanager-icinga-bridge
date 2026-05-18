@@ -1,0 +1,12 @@
+---
+version: '2'
+services:
+  alertmanager:
+    image: docker.io/prom/alertmanager
+    network_mode: host
+    volumes:
+    - ./alertmanager.yml:/alertmanager.yml
+    command:
+    - '--config.file=/alertmanager.yml'
+    ports:
+    - '9093:9093'
