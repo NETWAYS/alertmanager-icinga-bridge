@@ -1,0 +1,52 @@
+{
+  "results": [
+    {
+      "attrs": {
+        "__name": "Alertmanager!heartbeat!e232d43b",
+        "active": true,
+        "author": "admin",
+        "authoritative_zone": "",
+        "comment": "Example",
+        "config_owner": "",
+        "config_owner_hash": "",
+        "duration": 0,
+        "end_time": 1778595614,
+        "entry_time": 1778592024.308573,
+        "fixed": true,
+        "ha_mode": 0,
+        "host_name": "Alertmanager",
+        "legacy_id": 3,
+        "name": "e232d43b",
+        "original_attributes": null,
+        "package": "_api",
+        "parent": "",
+        "paused": true,
+        "remove_time": 0,
+        "scheduled_by": "",
+        "service_name": "heartbeat",
+        "source_location": {
+          "first_column": 0,
+          "first_line": 1,
+          "last_column": 69,
+          "last_line": 1,
+          "path": "/var/lib/icinga2/api/packages/_api/21826b37/conf.d/downtimes/Alertmanager!heartbeat!e232d43b.conf"
+        },
+        "start_time": 1778592014,
+        "templates": [
+          "e232d43b-2e72-4187-8b17-d5ff3a7e6260"
+        ],
+        "trigger_time": 1778592024.308573,
+        "triggered_by": "",
+        "triggers": [],
+        "type": "Downtime",
+        "version": 1778592024.30865,
+        "was_cancelled": false,
+        "zone": ""
+      },
+      "joins": {},
+      "meta": {},
+      "name": "Alertmanager!heartbeat!e232d43b",
+      "type": "Downtime"
+    }
+  ]
+}
