@@ -52,7 +52,7 @@ func NewListener(config *config.Config, logger *slog.Logger, icingaClient *icing
 
 	mux := http.NewServeMux()
 	// Register all handler functions here to have a central overview of the API
-	mux.HandleFunc("GET /healthz", l.handleHealthy)
+	mux.HandleFunc("GET /health", l.handleHealthy)
 	mux.HandleFunc("POST /webhook", l.handleIncomingAlert)
 
 	l.mux = authHandler(mux, config.BearerToken)

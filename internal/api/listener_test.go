@@ -88,7 +88,7 @@ func TestListener_handleHealthy_WithOK(t *testing.T) {
 		logger: testLogger(),
 	}
 
-	req := httptest.NewRequest("GET", "/healthz", nil)
+	req := httptest.NewRequest("GET", "/health", nil)
 	w := httptest.NewRecorder()
 
 	l.handleHealthy(w, req)

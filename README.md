@@ -11,9 +11,8 @@ The Alertmanager to Icinga bridge can receive alerts from the Prometheus Alertma
 
 When started, Alertmanager-Icinga-Bridge listens to HTTP requests on the following paths:
 
-* `/webhook` Endpoint to accept alerts from Alertmanager.
-* `/healthz` returns HTTP 200 with `ok` as its payload as long as the webhook
-  serving loop is operational.
+* `/webhook` Endpoint to accept alerts from Alertmanager
+* `/health` returns HTTP 200 with `{"status": "ok"}` as its payload as long as the webhook serving loop is operational
 
 ## Configuration
 
