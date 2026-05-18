@@ -274,6 +274,42 @@ func TestPrepareService_WithHeartbeat(t *testing.T) {
 	}
 }
 
+func TestPrepareService_WithZoneHostTemplate(t *testing.T) {
+	config := testConfig("")
+
+	config.StaticServiceVars = map[string]string{
+		"foo": "bar",
+	}
+
+	l := &Listener{
+		logger: testLogger(),
+		config: config,
+	}
+
+	alert := Alert{
+		Status: "firing",
+		Labels: map[string]string{
+			"alertname":           "example",
+			"icinga_use_zone":     "myZone",
+			"icinga_use_template": "myTemplate",
+			"icinga_use_host":     "myHost",
+		},
+		Annotations: map[string]string{
+			"summary":     "example",
+			"runbook_url": "unittest",
+		},
+	}
+
+	svc := l.prepareService("serviceName", "displayName", alert, 0, time.Duration(100))
+
+	if svc.HostName != "myHost" {
+		t.Fatalf("expected %v, got %v", "myHost", svc.HostName)
+	}
+	if svc.Zone != "myZone" {
+		t.Fatalf("expected %v, got %v", "myZone", svc.Zone)
+	}
+}
+
 func TestGeneratePluginOutput_WithPluginOutputByStates(t *testing.T) {
 	config := testConfig("")
 

@@ -1,5 +1,9 @@
 alertname="${1:-TestAlert}"
 
+# \"icinga_use_zone\": \"MyZone\",
+# \"icinga_use_template\": \"MyTemplate\",
+# \"icinga_use_host\": \"MyHost\",
+
 curl -i -X POST http://localhost:9093/api/v2/alerts \
   -H "Content-Type: application/json" \
   -d "[

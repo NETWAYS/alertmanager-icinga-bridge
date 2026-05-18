@@ -255,12 +255,24 @@ Examples:
 | ---------- | ----------- |
 | Label: `foo: bar` | Custom Var: `label_foo = bar` |
 | Annotation: `foo: bar` | Custom Var: `annotation_foo = bar` |
-| label: `icinga_string_foo: bar` | Custom Var: `foo = bar` |
+| Label: `icinga_string_foo: bar` | Custom Var: `foo = bar` |
 | Annotation: `icinga_string_foo: bar` | Custom Var: `foo = bar` |
-| label: `icinga_number_foo: 123` | Custom Var: `foo = 123` |
+| Label: `icinga_number_foo: 123` | Custom Var: `foo = 123` |
 | Annotation: `icinga_number_foo: 123` | Custom Var: `foo = 123` |
 
 In case there is a label and an annotation with the `icinga_<type>` prefix, the value of the annotation will take precedence in the resulting set of custom variables.
+
+## Custom Host/Zone/Template
+
+By default, the `--icinga-hostname` is used to create services and `--templates` for the service's template. This can be overridden by the following labels:
+
+| Alert      | Icinga      |
+| ---------- | ----------- |
+| Label: `icinga_use_host: MyHost` | If present, use given host for the new service. The host must exist beforehand |
+| Label: `icinga_use_zone: MyZone` | If present, use given zone for the new service The zone must exist beforehand |
+| Label: `icinga_use_template: MyTemplate` | If present, use given template for the new service The template must exist beforehand |
+
+Note that this requires the Alertmanager-Icinga-Bridge user to have the necessary permissions on the host.
 
 ## Heartbeat Services
 

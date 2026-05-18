@@ -336,6 +336,18 @@ func (l *Listener) prepareService(serviceName string, displayName string, alert 
 		Vars:             serviceVars,
 	}
 
+	if value, ok := alert.Labels["icinga_use_host"]; ok {
+		svc.HostName = value
+	}
+
+	if value, ok := alert.Labels["icinga_use_zone"]; ok {
+		svc.Zone = value
+	}
+
+	if value, ok := alert.Labels["icinga_use_template"]; ok {
+		svc.Templates = append(svc.Templates, value)
+	}
+
 	// Check if this is a heartbeat service and adjust serviceData accordingly
 	if heartbeatInterval.Seconds() > 0.0 {
 		// Set dummy text to message annotation on alert
