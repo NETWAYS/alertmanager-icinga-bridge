@@ -77,6 +77,7 @@ func (l *Listener) Run(ctx context.Context) error {
 		var errServe error
 
 		if l.config.TLSCertPath != "" && l.config.TLSKeyPath != "" {
+			l.logger.Info("Using TLS", "component", "listener", "key", l.config.TLSKeyPath, "cert", l.config.TLSCertPath)
 			errServe = server.ListenAndServeTLS(l.config.TLSCertPath, l.config.TLSKeyPath)
 		} else {
 			errServe = server.ListenAndServe()
