@@ -50,7 +50,8 @@ func TestGCRemoveService_WithRemoved(t *testing.T) {
 	gc := NewGarbageCollector(config, logger, icingaClient)
 
 	svc := icinga2.Service{
-		Name: "unittest!svc",
+		HostName: "unittest",
+		Name:     "svc",
 		Vars: icinga2.Vars{
 			"keep_for": 123.456,
 		},
@@ -63,7 +64,7 @@ func TestGCRemoveService_WithRemoved(t *testing.T) {
 	}
 
 	actual := buf.String()
-	expected := "\"Removed service from Icinga\" component=gc service=!unittest!svc"
+	expected := "\"Successfully removed service from Icinga\" component=gc service=unittest!svc"
 
 	if !strings.Contains(actual, expected) {
 		t.Fatalf("expected %v, got %v", expected, actual)
@@ -84,7 +85,8 @@ func TestGCRemoveService_WithSkippedDowntime(t *testing.T) {
 	gc := NewGarbageCollector(config, logger, icingaClient)
 
 	svc := icinga2.Service{
-		Name: "unittest!svc",
+		HostName: "unittest",
+		Name:     "svc",
 		Vars: icinga2.Vars{
 			"keep_for":        20.0,
 			"label_heartbeat": "true",
@@ -121,8 +123,9 @@ func TestGCRemoveService_WithSkippedNotOK(t *testing.T) {
 	gc := NewGarbageCollector(config, logger, icingaClient)
 
 	svc := icinga2.Service{
-		Name:  "unittest!svc",
-		State: 2,
+		HostName: "unittest",
+		Name:     "svc",
+		State:    2,
 		Vars: icinga2.Vars{
 			"keep_for": 20.0,
 		},
@@ -157,7 +160,8 @@ func TestGCRemoveService_WithNoKeepFor(t *testing.T) {
 	gc := NewGarbageCollector(config, logger, icingaClient)
 
 	svc := icinga2.Service{
-		Name:            "unittest!svc",
+		HostName:        "unittest",
+		Name:            "svc",
 		State:           0,
 		LastStateChange: 1770000000.0,
 	}
@@ -190,8 +194,9 @@ func TestGCRemoveService_WithInvalidKeepFor(t *testing.T) {
 	gc := NewGarbageCollector(config, logger, icingaClient)
 
 	svc := icinga2.Service{
-		Name:  "unittest!svc",
-		State: 0,
+		HostName: "unittest",
+		Name:     "svc",
+		State:    0,
 		Vars: icinga2.Vars{
 			"keep_for": "FOOBAR",
 		},
