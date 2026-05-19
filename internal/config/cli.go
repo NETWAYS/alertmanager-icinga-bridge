@@ -12,7 +12,7 @@ type CLI struct {
 	// General
 	ID       string           `kong:"required,env='ALERTMANAGER_ICINGA_BRIDGE_ID',help='Instance ID'"`
 	Loglevel string           `kong:"default='info',env='ALERTMANAGER_ICINGA_BRIDGE_LOGLEVEL',help='Loglevel (debug, info, warn, error)'"`
-	Version  kong.VersionFlag `kong:"default='false',help='Print version information and quit'"`
+	Version  kong.VersionFlag `kong:"help='Print version information and quit'"`
 
 	// Icinga Client
 	IcingaURL                []string          `kong:"required,env='ALERTMANAGER_ICINGA_BRIDGE_ICINGA_URL',help='Icinga API URL (can be repeated)'"`
