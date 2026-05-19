@@ -4,6 +4,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -17,7 +18,6 @@ import (
 	"github.com/alecthomas/kong"
 )
 
-// nolint: gochecknoglobals
 var (
 	// These get filled at build time with the proper values.
 	version = "development"
@@ -25,13 +25,28 @@ var (
 	date    = "latest"
 )
 
+// buildVersion creates a string that contains the executable's version
+func buildVersion() string {
+	result := version
+
+	if commit != "" {
+		result = fmt.Sprintf("%s\ncommit: %s", result, commit)
+	}
+
+	if date != "" {
+		result = fmt.Sprintf("%s\ndate: %s", result, date)
+	}
+
+	return result
+}
+
 func main() {
 	var cli config.CLI
 	// Create and parse CLI flags -> move to kong
 	kong.Parse(&cli,
 		kong.Name("alertmanager-icinga-bridge"),
-		kong.Description("alertmanager-icinga-bridge takes in Alertmanager alerts through a webhook, translates them into Icinga2 services and posts them using the Icinga API"),
-		kong.Vars{"version": version},
+		kong.Description(`The Alertmanager to Icinga bridge can receive alerts from the Prometheus Alertmanager's generic webhook receiver and creates Icinga Services for these alerts.`),
+		kong.Vars{"version": buildVersion()},
 	)
 
 	// Central logger that we pass to the components

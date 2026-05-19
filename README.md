@@ -18,61 +18,36 @@ When started, Alertmanager-Icinga-Bridge listens to HTTP requests on the followi
 ## Configuration
 
 ```
-Usage: alertmanager-icinga-bridge --id=STRING --icinga-url=ICINGA-URL,... --icinga-hostname=STRING --icinga-password=STRING --icinga-user=STRING --bearer-token=STRING [flags]
-
-alertmanager-icinga-bridge takes in Alertmanager alerts through a webhook, translates them into Icinga2 services and posts
-them using the Icinga API
-
 Flags:
 --help                                     Show context-sensitive help.
 --id=STRING                                Instance ID ($ALERTMANAGER_ICINGA_BRIDGE_ID)
---loglevel="info"                          Loglevel ($ALERTMANAGER_ICINGA_BRIDGE_LOGLEVEL)
+--loglevel="info"                          Loglevel (debug, info, warn, error) ($ALERTMANAGER_ICINGA_BRIDGE_LOGLEVEL)
+--version                                  Print version information and quit
 --icinga-url=ICINGA-URL,...                Icinga API URL (can be repeated) ($ALERTMANAGER_ICINGA_BRIDGE_ICINGA_URL)
---icinga-hostname=STRING                   Icinga host name to manage services for
-                                           ($ALERTMANAGER_ICINGA_BRIDGE_ICINGA_HOSTNAME)
+--icinga-hostname=STRING                   Icinga host name to manage services for ($ALERTMANAGER_ICINGA_BRIDGE_ICINGA_HOSTNAME)
 --disable-keep-alives                      Disable HTTP keepalives ($ALERTMANAGER_ICINGA_BRIDGE_DISABLE_KEEPALIVES)
---display-name-as-service-name             Leave display name as service name
-                                           ($ALERTMANAGER_ICINGA_BRIDGE_DISPLAY_NAME_AS_SERVICE_NAME)
---icinga-insecure-tls                      Skip Icinga TLS verification
-                                           ($ALERTMANAGER_ICINGA_BRIDGE_ICINGA_INSECURE_TLS)
---icinga-ca-file=STRING                    Path of a custom CA certificate to use when connecting to the Icinga API
-                                           ($ALERTMANAGER_ICINGA_BRIDGE_ICINGA_CA)
---icinga-password=STRING                   Icinga Password ($ALERTMANAGER_ICINGA_BRIDGE_ICINGA_PASSWORD)
---icinga-user=STRING                       Icinga Username ($ALERTMANAGER_ICINGA_BRIDGE_ICINGA_USERNAME)
---custom-severity-levels=KEY=VALUE;...     Add or override the default mapping of Severity Levels
-                                           to Service States (Severity_Level=Service_State)
-                                           ($ALERTMANAGER_ICINGA_BRIDGE_ALERTMANAGER_CUSTOM_SEVERITY_LEVELS)
---gc-interval=15m                          Garbage collection interval for old alerts
-                                           ($ALERTMANAGER_ICINGA_BRIDGE_GC_INTERVAL)
---heartbeat-interval=1m                    The heartbeat interval for the bridge self-monitoring service
-                                           ($ALERTMANAGER_ICINGA_BRIDGE_HEARTBEAT_INTERVAL)
---heartbeat-service="heartbeat"            The name for the bridge self-monitoring service
-                                           ($ALERTMANAGER_ICINGA_BRIDGE_HEARTBEAT_SERVICE)
---listen-addr="127.0.0.1:8888"             Listening address for the incoming Alertmanager webhooks
-                                           ($ALERTMANAGER_ICINGA_BRIDGE_LISTEN_ADDR)
+--display-name-as-service-name             Set the Icinga service display name to the generated service name ($ALERTMANAGER_ICINGA_BRIDGE_DISPLAY_NAME_AS_SERVICE_NAME)
+--icinga-insecure-tls                      Skip Icinga TLS verification ($ALERTMANAGER_ICINGA_BRIDGE_ICINGA_INSECURE_TLS)
+--icinga-ca-file=STRING                    Path of a custom CA certificate to use when connecting to the Icinga API ($ALERTMANAGER_ICINGA_BRIDGE_ICINGA_CA)
+--icinga-password=STRING                   Icinga API password ($ALERTMANAGER_ICINGA_BRIDGE_ICINGA_PASSWORD)
+--icinga-user=STRING                       Icinga API username ($ALERTMANAGER_ICINGA_BRIDGE_ICINGA_USERNAME)
+--custom-severity-levels=KEY=VALUE;...     Add or override the default mapping of severity levels to service states (severity_level=service_state) ($ALERTMANAGER_ICINGA_BRIDGE_ALERTMANAGER_CUSTOM_SEVERITY_LEVELS)
+--gc-interval=15m                          Interval to check for and remove created services ($ALERTMANAGER_ICINGA_BRIDGE_GC_INTERVAL)
+--heartbeat-interval=1m                    Interval for the bridge self-monitoring service heartbeat ($ALERTMANAGER_ICINGA_BRIDGE_HEARTBEAT_INTERVAL)
+--heartbeat-service="heartbeat"            The name for the bridge self-monitoring service ($ALERTMANAGER_ICINGA_BRIDGE_HEARTBEAT_SERVICE)
+--listen-addr="127.0.0.1:8888"             Listening address for the incoming Alertmanager requests ($ALERTMANAGER_ICINGA_BRIDGE_LISTEN_ADDR)
 --bearer-token=STRING                      Bearer token for incoming requests ($ALERTMANAGER_ICINGA_BRIDGE_BEARER_TOKEN)
---tls-cert-path=STRING                     Path of a certificate file for TLS-enabled webhook endpoint (full chain)
-                                           ($ALERTMANAGER_ICINGA_BRIDGE_TLS_CERT)
---tls-key-path=STRING                      Path of a private key file for TLS-enabled webhook endpoint
-                                           ($ALERTMANAGER_ICINGA_BRIDGE_TLS_KEY)
---check-command="dummy"                    Specify Icinga check command during service creation
-                                           ($ALERTMANAGER_ICINGA_BRIDGE_SERVICE_CHECKS_COMMAND)
---active-checks                            Create Icinga services as active checks
-                                           ($ALERTMANAGER_ICINGA_BRIDGE_SERVICE_CHECKS_ACTIVE)
---plugin-output-by-states                  Enable dynamic selection of plugin output annotation based on Service State
-                                           ($ALERTMANAGER_ICINGA_BRIDGE_PLUGINOUTPUT_BY_STATES)
---max-check-attempts=1                     The maximum number of checks which are executed before changing to a hard
-                                           state ($ALERTMANAGER_ICINGA_BRIDGE_SERVICE_MAX_CHECK_ATTEMPTS)
---templates=generic-service,...            Create Icinga services with the given template (can be repeated)
-                                           ($ALERTMANAGER_ICINGA_BRIDGE_SERVICE_TEMPLATE)
---plugin-output-annotations=message,...    List of Annotation names to be used to set the plugin output for the Icinga
-                                           Service ($ALERTMANAGER_ICINGA_BRIDGE_PLUGINOUTPUT_ANNOTATIONS)
---checks-interval=12h                      Interval (in seconds) to be used for Icinga check_interval and retry_interval
-                                           ($ALERTMANAGER_ICINGA_BRIDGE_SERVICE_CHECKS_INTERVAL)
---keep-for=168h                            How long to keep old alerts around after they have been resolved
-                                           ($ALERTMANAGER_ICINGA_BRIDGE_KEEP_FOR)
---static-service-vars=KEY=VALUE;...        A variable to be set on each Icinga service (variable=value, can be repeated)
-                                           ($ALERTMANAGER_ICINGA_BRIDGE_STATIC_SERVICE_VAR)
+--tls-cert-path=STRING                     Path of a certificate file for TLS-enabled webhook endpoint (full chain) ($ALERTMANAGER_ICINGA_BRIDGE_TLS_CERT)
+--tls-key-path=STRING                      Path of a private key file for TLS-enabled webhook endpoint ($ALERTMANAGER_ICINGA_BRIDGE_TLS_KEY)
+--check-command="dummy"                    Specify Icinga check command during service creation ($ALERTMANAGER_ICINGA_BRIDGE_SERVICE_CHECKS_COMMAND)
+--active-checks                            Create Icinga services as active checks ($ALERTMANAGER_ICINGA_BRIDGE_SERVICE_CHECKS_ACTIVE)
+--plugin-output-by-states                  Enable dynamic selection of plugin output annotation based on service state ($ALERTMANAGER_ICINGA_BRIDGE_PLUGINOUTPUT_BY_STATES)
+--max-check-attempts=1                     The maximum number of checks which are executed before changing to a hard state ($ALERTMANAGER_ICINGA_BRIDGE_SERVICE_MAX_CHECK_ATTEMPTS)
+--templates=generic-service,...            Create Icinga services with the given template (can be repeated) ($ALERTMANAGER_ICINGA_BRIDGE_SERVICE_TEMPLATE)
+--plugin-output-annotations=message,...    List of Annotation names to be used to set the plugin output for the Icinga service ($ALERTMANAGER_ICINGA_BRIDGE_PLUGINOUTPUT_ANNOTATIONS)
+--checks-interval=12h                      Interval (in seconds) to be used for Icinga check_interval and retry_interval ($ALERTMANAGER_ICINGA_BRIDGE_SERVICE_CHECKS_INTERVAL)
+--keep-for=168h                            How long to keep created alerts around after they have been resolved ($ALERTMANAGER_ICINGA_BRIDGE_KEEP_FOR)
+--static-service-vars=KEY=VALUE;...        Custom variable to be set for craeted Icinga services (variable=value, can be repeated) ($ALERTMANAGER_ICINGA_BRIDGE_STATIC_SERVICE_VAR)
 ```
 
 Most flags can be set with environment variables, refer to the help to see which flags.
