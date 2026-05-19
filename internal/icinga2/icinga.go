@@ -48,6 +48,7 @@ func NewClient(config *config.Config, logger *slog.Logger) *Client {
 			KeepAlive: 30 * time.Second,
 		}).DialContext,
 		DisableKeepAlives:   config.IcingaDisableKeepAlives,
+		ForceAttemptHTTP2:   true,
 		TLSHandshakeTimeout: 30 * time.Second,
 		TLSClientConfig:     config.IcingaTLSConfig,
 	}
