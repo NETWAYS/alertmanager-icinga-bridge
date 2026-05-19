@@ -4,8 +4,21 @@ The Alertmanager to Icinga bridge can receive alerts from the Prometheus Alertma
 
 ## Installation
 
-* Install `alertmanager-icinga-bridge`
+* Install and start the `alertmanager-icinga-bridge` executable
 * Create an Icinga host and API user for Alertmanager-Icinga-Bridge
+* Create an Icinga service template for the managed services
+
+Example:
+
+```bash
+alertmanager-icinga-bridge \
+ --id alertmanagerID \
+ --icinga-hostname Alertmanager \
+ --icinga-url "https://icinga.internal:5665" \
+ --icinga-user icinga-example-api-user \
+ --icinga-password icinga-example-api-password \
+ --bearer-token alertmanager-example-token
+```
 
 ## Usage
 
