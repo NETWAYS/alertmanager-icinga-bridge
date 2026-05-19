@@ -51,6 +51,7 @@ func main() {
 
 	// Central logger that we pass to the components
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: config.MapLogLevel(cli.Loglevel)}))
+	slog.SetDefault(logger)
 
 	cfg, errConfig := config.NewConfigFromCLI(&cli)
 

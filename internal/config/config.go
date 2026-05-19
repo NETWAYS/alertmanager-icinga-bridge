@@ -1,4 +1,4 @@
-// Licensed under "BSD 3-Clause". See LICENSE file.
+// SPDX-License-Identifier: BSD-3-Clause
 
 package config
 
@@ -83,6 +83,9 @@ func NewConfigFromCLI(cli *CLI) (*Config, error) {
 		if errTLS != nil {
 			return &conf, fmt.Errorf("error loading the TLS configuration %w", errTLS)
 		}
+
+		conf.TLSKeyPath = cli.TLSKeyPath
+		conf.TLSCertPath = cli.TLSCertPath
 	}
 
 	conf.IcingaTLSConfig = &tls.Config{
