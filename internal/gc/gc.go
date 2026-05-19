@@ -189,7 +189,7 @@ func (g *GarbageCollector) removeServiceIfRequired(ctx context.Context, service 
 		return fmt.Errorf("could remove service: %w", errDel)
 	}
 
-	g.logger.Info("Removed service from Icinga", "component", "gc", "service", svcName)
+	g.logger.Info("Successfully removed service from Icinga", "component", "gc", "service", svcName)
 
 	return nil
 }

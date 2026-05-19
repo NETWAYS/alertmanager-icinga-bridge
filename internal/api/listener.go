@@ -265,20 +265,23 @@ func (l *Listener) updateOrCreateService(ctx context.Context, serviceName, displ
 	}
 
 	svc := l.prepareService(serviceName, displayName, alert, exitCode, heartbeatInterval)
+	svcFullname := svc.FullName()
 
-	_, errGet := l.icingaClient.GetService(ctx, svc.FullName())
+	_, errGet := l.icingaClient.GetService(ctx, svcFullname)
 
 	// There was an error, either no object or something went wrong
 	if errGet != nil {
 		if errors.Is(errGet, icinga2.ErrNotFound) {
 			// No such object, we need to create one and then return
-			l.logger.Debug("Creating new service for incoming alert", "component", "listener", "service", svc.FullName())
+			l.logger.Debug("Creating new service for incoming alert", "component", "listener", "service", svcFullname)
 
 			errCreate := l.icingaClient.CreateService(ctx, svc)
 
 			if errCreate != nil {
 				return svc, fmt.Errorf("unable to create service: %w", errCreate)
 			}
+
+			l.logger.Info("Successfully created service for incoming alert", "component", "listener", "service", svcFullname)
 
 			return svc, nil
 		}
@@ -291,13 +294,15 @@ func (l *Listener) updateOrCreateService(ctx context.Context, serviceName, displ
 	// Attribute 'templates' could not be set: Error: Attribute cannot be modified.
 	svc.Templates = nil
 
-	l.logger.Debug("Updating existing service for incoming alert", "component", "listener", "service", svc.FullName())
+	l.logger.Debug("Updating existing service for incoming alert", "component", "listener", "service", svcFullname)
 
 	errUpdate := l.icingaClient.UpdateService(ctx, svc)
 
 	if errUpdate != nil {
 		return svc, fmt.Errorf("unable to update existing service: %w", errUpdate)
 	}
+
+	l.logger.Info("Successfully updated service for incoming alert", "component", "listener", "service", svcFullname)
 
 	return svc, nil
 }
