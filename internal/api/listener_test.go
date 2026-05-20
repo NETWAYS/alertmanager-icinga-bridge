@@ -446,7 +446,6 @@ func TestSeverityToExitCode(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			if got := severityToExitCode(tt.status, tt.severity, severityLevels); got != tt.want {
 				t.Errorf("severityToExitCode(%q, %q) = %d, want %d",
@@ -504,7 +503,6 @@ func TestMapToStableString(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			if got := mapToStableString(tt.in); got != tt.want {
 				t.Errorf("mapToStableString() = %q, want %q", got, tt.want)
