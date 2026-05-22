@@ -53,9 +53,9 @@ func NewListener(config *config.Config, logger *slog.Logger, icingaClient *icing
 	mux := http.NewServeMux()
 	// Register all handler functions here to have a central overview of the API
 	mux.HandleFunc("GET /healthz", l.handleHealthy)
-	mux.HandleFunc("POST /webhook", l.handleIncomingAlert)
+	mux.HandleFunc("POST /webhook", authHandler(l.handleIncomingAlert, config.BearerToken))
 
-	l.mux = authHandler(mux, config.BearerToken)
+	l.mux = mux
 
 	return l
 }
@@ -115,7 +115,7 @@ func (l *Listener) Run(ctx context.Context) error {
 
 // authHandler is a Middleware for handling authorization.
 // We currently only need Bearer token authorization, since we don't have complex actions in the API.
-func authHandler(next http.Handler, expectedToken string) http.Handler {
+func authHandler(f func(http.ResponseWriter, *http.Request), expectedToken string) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Get the Authorization Header from the request
 		authHeader := r.Header.Get("Authorization")
@@ -123,17 +123,17 @@ func authHandler(next http.Handler, expectedToken string) http.Handler {
 		scheme, receivedToken, found := strings.Cut(authHeader, " ")
 
 		if !found || !strings.EqualFold(scheme, "Bearer") || receivedToken == "" {
-			http.Error(w, "malformed authorization header", http.StatusUnauthorized)
+			http.Error(w, "unauthorized. missing or malformed authorization header", http.StatusUnauthorized)
 			return
 		}
 
 		if receivedToken != expectedToken {
-			http.Error(w, "invalid token", http.StatusUnauthorized)
+			http.Error(w, "unauthorized. invalid token", http.StatusUnauthorized)
 			return
 		}
 
 		// Pass down the request to the next middleware or handler
-		next.ServeHTTP(w, r)
+		f(w, r)
 	})
 }
 
