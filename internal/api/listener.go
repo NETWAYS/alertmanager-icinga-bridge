@@ -123,12 +123,12 @@ func authHandler(f func(http.ResponseWriter, *http.Request), expectedToken strin
 		scheme, receivedToken, found := strings.Cut(authHeader, " ")
 
 		if !found || !strings.EqualFold(scheme, "Bearer") || receivedToken == "" {
-			http.Error(w, "malformed authorization header", http.StatusUnauthorized)
+			http.Error(w, "unauthorized. missing or malformed authorization header", http.StatusUnauthorized)
 			return
 		}
 
 		if receivedToken != expectedToken {
-			http.Error(w, "invalid token", http.StatusUnauthorized)
+			http.Error(w, "unauthorized. invalid token", http.StatusUnauthorized)
 			return
 		}
 
