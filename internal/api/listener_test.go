@@ -41,8 +41,8 @@ func TestAuthHandler_WithOK(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	}
 
-	var handler http.Handler = http.HandlerFunc(h)
-	handler = authHandler(handler, "foobar123")
+	var handler http.Handler = authHandler(http.HandlerFunc(h), "foobar123")
+
 	w := httptest.NewRecorder()
 
 	reqNoType, _ := http.NewRequestWithContext(context.Background(), "GET", "/", nil)
@@ -69,8 +69,7 @@ func TestAuthHandler_WithFail(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	}
 
-	var handler http.Handler = http.HandlerFunc(h)
-	handler = authHandler(handler, "foobar123")
+	var handler http.Handler = authHandler(http.HandlerFunc(h), "foobar123")
 	w := httptest.NewRecorder()
 
 	req, _ := http.NewRequestWithContext(context.Background(), "GET", "/", nil)
