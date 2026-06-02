@@ -4,6 +4,8 @@ The Alertmanager to Icinga bridge can receive alerts from the Prometheus Alertma
 
 ## Installation
 
+The `alertmanager-icinga-bridge` is available as an executable in the GitHub Releases and as a container image `ghcr.io/netways/alertmanager-icinga-bridge`.
+
 * Install and start the `alertmanager-icinga-bridge` executable
 * Create an Icinga host and API user for Alertmanager-Icinga-Bridge
 * Create an Icinga service template for the managed services
