@@ -21,7 +21,7 @@ jobs:
 
       - name: Build image
         run: |
-          docker build --file Dockerfile --tag $IMAGE_NAME --build-arg "BRIDGE_VERSION=${GITHUB_REF}" --build-arg "BRIDGE_COMMIT=${GITHUB_SHA}" .
+          docker build --file Dockerfile --tag $IMAGE_NAME .
 
       - name: Log in to registry
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
