@@ -230,6 +230,11 @@ func (l *Listener) manageIcingaService(ctx context.Context, payload WebhookPaylo
 		// Get the Plugin Output from the first Annotation we find that has some data
 		pluginOutput := l.generatePluginOutput(alert, exitCode)
 
+		// heartbeat alerts will use exit code OK since they always fire and the active check will set it to not OK
+		if _, ok := alert.Labels["heartbeat"]; ok {
+			exitCode = 0
+		}
+
 		action := icinga2.Action{
 			ExitStatus:   exitCode,
 			PluginOutput: pluginOutput,
@@ -247,8 +252,9 @@ func (l *Listener) manageIcingaService(ctx context.Context, payload WebhookPaylo
 	return nil
 }
 
+// updateOrCreateService either updates an existing service or creates a new service
 func (l *Listener) updateOrCreateService(ctx context.Context, serviceName, displayName string, exitCode int, alert Alert) (icinga2.Service, error) {
-	heartbeatInterval := time.Duration(0)
+	heartbeatInterval := time.Duration(-1)
 
 	if val, ok := alert.Labels["heartbeat"]; ok {
 		if alert.Status == alertStatusResolved {
@@ -355,7 +361,7 @@ func (l *Listener) prepareService(serviceName string, displayName string, alert 
 	}
 
 	// Check if this is a heartbeat service and adjust serviceData accordingly
-	if heartbeatInterval.Seconds() > 0.0 {
+	if heartbeatInterval.Seconds() > 0 {
 		// Set dummy text to message annotation on alert
 		svc.Vars["dummy_text"] = alert.Annotations["message"]
 		// Set exitStatus for missed heartbeat to Alert's severity
