@@ -2,6 +2,13 @@
 
 The Alertmanager to Icinga bridge can receive alerts from the Prometheus Alertmanager's generic webhook receiver and creates Icinga Services for these alerts.
 
+Other Icinga and Prometheus integrations we provide:
+
+* https://github.com/NETWAYS/check_prometheus/
+* https://github.com/NETWAYS/icinga2-exporter
+* https://github.com/NETWAYS/icingaweb2-module-perfdatagraphs-prometheus
+* https://github.com/NETWAYS/notify-alertmanager
+
 ## Installation
 
 The `alertmanager-icinga-bridge` is available as an executable in the GitHub Releases and as a container image `ghcr.io/netways/alertmanager-icinga-bridge`.
