@@ -78,6 +78,7 @@ func (c *Client) Do(req *http.Request, path string) (*http.Response, error) {
 
 		c.logger.Debug(fmt.Sprintf("Calling Icinga API at %s", req.URL), "component", "icinga")
 
+		req.Header.Set("User-Agent", "alertmanager-icinga-bridge")
 		req.Header.Set("Accept", "application/json")
 		req.Header.Set("Content-Type", "application/json")
 
