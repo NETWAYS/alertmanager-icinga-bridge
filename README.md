@@ -80,7 +80,7 @@ The tool respects the environment variables HTTP_PROXY, HTTPS_PROXY and NO_PROXY
 
 The `/webhook` endpoint accepts alerts from the Alertmanager's [generic webhook receiver](https://prometheus.io/docs/alerting/latest/configuration/#webhook_config).
 
-Alertmanager-Icinga-Bridge expects a the following to be part of an alert.
+Alertmanager-Icinga-Bridge expects the following to be part of an alert.
 
 Alert fields:
 * `generatorURL`: Is mapped to the Icinga service `action_url`
@@ -106,7 +106,7 @@ Alternatively, if you enable `--plugin-output-by-states` then the Alertmanager-I
 
 This allows you to configure multiple annotations with different values that are then used with the corresponding service state to set the plugin output.
 
-If an annotation is not found for that specific service state then Alertmanager-Icinga-Bridge will fallback on using the annotation name as configured.
+If an annotation is not found for that specific service state then Alertmanager-Icinga-Bridge will fall back on using the annotation name as configured.
 
 ### Example Alertmanager Configuration
 
@@ -137,7 +137,7 @@ receivers:
 
 ## Integration with Icinga
 
-You need to create an Icinga host which the Alertmanager-Icinga-Bridge can use to manage service's for.
+You need to create an Icinga host which the Alertmanager-Icinga-Bridge can use to manage services for.
 
 Alertmanager-Icinga-Bridge expects that it has full control over this host.
 Therefore, you should create a host for each Alertmanager-Icinga-Bridge instance which you're running.
@@ -243,9 +243,9 @@ object Service "heartbeat" {
 All alert labels and annotations will be mapped to custom variables.
 Keys of labels will be prefixed with `label_` and keys of annotations with `annotation_`.
 
-If the key an annotation or label starts with `icinga_` it will also be added as custom variable without any prefix.
+If the key of an annotation or label starts with `icinga_` it will also be added as custom variable without any prefix.
 
-Since all labels and annotations are strings, a type information can be provided.
+Since all labels and annotations are strings, type information can be provided.
 This is done by adding the type as part of the prefix (`icinga_<type>_`).
 
 Current supported types are `number` and `string`.
@@ -265,13 +265,13 @@ In case there is a label and an annotation with the `icinga_<type>` prefix, the 
 
 ## Custom Host/Zone/Template
 
-By default, the `--icinga-hostname` is used to create services and `--templates` for the service's template. This can be overridden by the following labels:
+By default, the `--icinga-hostname` is used to create services and `--templates` for the service template. This can be overridden by the following labels:
 
 | Alert      | Icinga      |
 | ---------- | ----------- |
 | Label: `icinga_use_host: MyHost` | If present, use given host for the new service. The host must exist beforehand |
 | Label: `icinga_use_zone: MyZone` | If present, use given zone for the new service The zone must exist beforehand |
-| Label: `icinga_use_template: MyTemplate` | If present, use given template for the new service The template must exist beforehand |
+| Label: `icinga_use_template: MyTemplate` | If present, use given template for the new service. The template must exist beforehand |
 
 Note that this requires the Alertmanager-Icinga-Bridge user to have the necessary permissions on the host.
 
@@ -280,9 +280,9 @@ Note that this requires the Alertmanager-Icinga-Bridge user to have the necessar
 Alertmanager-Icinga-Bridge supports creating "heartbeat services" in Icinga.
 This can be used to map alerts like a `DeadMansSwitch`. In Prometheus a "watchdog" or "dead man's switch" is an alert that is always firing to ensure alerting pipeline is working.
 
-To treat an alert as a "heartbeat" the alert must have a label `heartbeat` with a [Golang duration](https://pkg.go.dev/time#ParseDuration) as value (e.g. `heartbeat: "1d"`).
+To treat an alert as a "heartbeat", the alert must have a label `heartbeat` with a [Golang duration](https://pkg.go.dev/time#ParseDuration) as value (e.g. `heartbeat: "1d"`).
 
-To enable garbage collection on these alerts they can be set to downtime. A heartbeat service with an active downtime will be removed by the garbage collection.
+To enable garbage collection on these alerts, they can be set to "downtime" in Icinga. A heartbeat service with an active downtime will be removed by the garbage collection.
 
 The Alertmanager-Icinga-Bridge will create an Icinga service check with active checks enabled and with the check interval set to the parsed duration.
 We add 10% to the parsed duration to account for network latency etc., which could otherwise lead to flapping heartbeat checks.
