@@ -68,7 +68,7 @@ func main() {
 	// Create Icinga Client
 	icingaClient := icinga2.NewClient(cfg, logger)
 
-	logger.Info("Starting alertmanager-icinga-brigde", "version", version, "commit", commit, "date", date, "component", "main")
+	logger.Info("Starting alertmanager-icinga-bridge", "version", version, "commit", commit, "date", date, "component", "main")
 
 	// Create and start the Service Garbage Collector
 	garbagecol := gc.NewGarbageCollector(cfg, logger, icingaClient)
