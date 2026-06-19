@@ -33,6 +33,9 @@ var (
 	serviceNamePattern        = regexp.MustCompile(`^[-+_.:,a-zA-Z0-9 %]{1,128}$`)
 )
 
+// Maximum number of bytes to accept as JSON. 100MB should be more than enough
+const maxBytesToAccept = 100 << 20
+
 // Listener represents the daemon's API
 type Listener struct {
 	mux                  http.Handler
@@ -154,9 +157,12 @@ func (l *Listener) handleHealthy(w http.ResponseWriter, _ *http.Request) {
 func (l *Listener) handleIncomingAlert(w http.ResponseWriter, r *http.Request) {
 	l.logger.Debug("Handling incoming alert", "component", "listener")
 
+	// We're only reading a maximum just to be safe.
+	body := http.MaxBytesReader(w, r.Body, maxBytesToAccept)
+
 	var payload WebhookPayload
 
-	errDecode := json.NewDecoder(r.Body).Decode(&payload)
+	errDecode := json.NewDecoder(body).Decode(&payload)
 
 	if errDecode != nil {
 		l.logger.Error("Received invalid JSON", "component", "listener", "error", errDecode.Error())
@@ -383,7 +389,7 @@ func (l *Listener) generatePluginOutput(alert Alert, exitCode int) string {
 		// If the PluginOutputByStates option is enabled then first look for an annotation with the state suffix
 		// otherwise fall back to just using the PluginOutputAnnotations value as is
 		if l.config.PluginOutputByStates {
-			// Note, I don't like PluginOutputStateSuffixes being a slide and exitCode being the index
+			// Note, I don't like PluginOutputStateSuffixes being a slice and exitCode being the index
 			if value, ok := alert.Annotations[fmt.Sprintf("%s_%s", v, pluginOutputStateSuffixes[exitCode])]; ok {
 				return value
 			}
