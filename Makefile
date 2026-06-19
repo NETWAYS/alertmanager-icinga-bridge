@@ -25,7 +25,7 @@ lint:
 vet:
 	go vet $(go list ./... | grep -v /vendor/)
 test:
-	go test -v -cover ./...
+	go test -v -cover -race ./...
 coverage:
 	go test -v -cover -coverprofile=coverage.out ./... &&\
 	go tool cover -html=coverage.out -o coverage.html
