@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
+// Package icinga2 provides the HTTP client to talk to the Icinga API
 package icinga2
 
 import (
@@ -21,7 +22,6 @@ import (
 const (
 	icingaActionProcessCheckResultEndpoint = "/v1/actions/process-check-result/"
 	icingaHostEndpoint                     = "/v1/objects/hosts/"
-	icingaHostgroupEndpoint                = "/v1/objects/hostgroups/"
 	icingaServiceEndpoint                  = "/v1/objects/services/"
 )
 
@@ -78,6 +78,7 @@ func (c *Client) Do(req *http.Request, path string) (*http.Response, error) {
 
 		c.logger.Debug(fmt.Sprintf("Calling Icinga API at %s", req.URL), "component", "icinga")
 
+		req.Header.Set("User-Agent", "alertmanager-icinga-bridge")
 		req.Header.Set("Accept", "application/json")
 		req.Header.Set("Content-Type", "application/json")
 

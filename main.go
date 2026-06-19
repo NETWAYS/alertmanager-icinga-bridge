@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
+// Package main parses the CLI flags and starts the various components
 package main
 
 import (
@@ -42,7 +43,7 @@ func buildVersion() string {
 
 func main() {
 	var cli config.CLI
-	// Create and parse CLI flags -> move to kong
+	// Create and parse CLI flags
 	kong.Parse(&cli,
 		kong.Name("alertmanager-icinga-bridge"),
 		kong.Description(`The Alertmanager to Icinga bridge can receive alerts from the Prometheus Alertmanager's generic webhook receiver and creates Icinga Services for these alerts.`),
@@ -67,7 +68,7 @@ func main() {
 	// Create Icinga Client
 	icingaClient := icinga2.NewClient(cfg, logger)
 
-	logger.Info("Starting alertmanager-icinga-brigde", "version", version, "commit", commit, "date", date, "component", "main")
+	logger.Info("Starting alertmanager-icinga-bridge", "version", version, "commit", commit, "date", date, "component", "main")
 
 	// Create and start the Service Garbage Collector
 	garbagecol := gc.NewGarbageCollector(cfg, logger, icingaClient)

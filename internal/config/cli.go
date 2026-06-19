@@ -18,7 +18,7 @@ type CLI struct {
 	IcingaURL                []string          `kong:"required,env='ALERTMANAGER_ICINGA_BRIDGE_ICINGA_URL',help='Icinga API URL (can be repeated)'"`
 	IcingaHostname           string            `kong:"required,env='ALERTMANAGER_ICINGA_BRIDGE_ICINGA_HOSTNAME',help='Icinga host name to manage services for'"`
 	DisableKeepAlives        bool              `kong:"default=false,env='ALERTMANAGER_ICINGA_BRIDGE_DISABLE_KEEPALIVES',help='Disable HTTP keepalives'"`
-	DisplayNameAsServiceName bool              `kong:"default='false',env='ALERTMANAGER_ICINGA_BRIDGE_DISPLAY_NAME_AS_SERVICE_NAME',help='Set the Icinga service display name to the generated service name'"`
+	DisplayNameAsServiceName bool              `kong:"default=false,env='ALERTMANAGER_ICINGA_BRIDGE_DISPLAY_NAME_AS_SERVICE_NAME',help='Set the Icinga service display name to the generated service name'"`
 	IcingaInsecureTLS        bool              `kong:"default=false,env='ALERTMANAGER_ICINGA_BRIDGE_ICINGA_INSECURE_TLS',help='Skip Icinga TLS verification'"`
 	IcingaCAFile             string            `kong:"env='ALERTMANAGER_ICINGA_BRIDGE_ICINGA_CA',help='Path of a custom CA certificate to use when connecting to the Icinga API'"`
 	IcingaPassword           string            `kong:"required,env='ALERTMANAGER_ICINGA_BRIDGE_ICINGA_PASSWORD',help='Icinga API password'"`

@@ -71,7 +71,7 @@ func TestGCRemoveService_WithRemoved(t *testing.T) {
 	}
 }
 
-func TestGCRemoveService_WithSkippedDowntime(t *testing.T) {
+func TestGCRemoveService_WithHeartbeatNoDowntime(t *testing.T) {
 	ts := testServerForDelete()
 	defer ts.Close()
 
@@ -89,10 +89,9 @@ func TestGCRemoveService_WithSkippedDowntime(t *testing.T) {
 		Name:     "svc",
 		Vars: icinga2.Vars{
 			"keep_for":        20.0,
-			"label_heartbeat": "true",
+			"label_heartbeat": "300s",
 		},
 		LastStateChange: 1770000000.0,
-		DowntimeDepth:   1,
 	}
 
 	actualErr := gc.removeServiceIfRequired(context.Background(), svc)
@@ -105,7 +104,45 @@ func TestGCRemoveService_WithSkippedDowntime(t *testing.T) {
 	expected := "Skipping heartbeat and not downtimed service"
 
 	if !strings.Contains(actual, expected) {
-		t.Fatalf("expected %v, got %v", expected, actual)
+		t.Fatalf("expected:\n %v, got:\n %v", expected, actual)
+	}
+}
+
+func TestGCRemoveService_WithHeartbeatDowntime(t *testing.T) {
+	ts := testServerForDelete()
+	defer ts.Close()
+
+	var buf bytes.Buffer
+	logger := slog.New(slog.NewTextHandler(&buf, &slog.HandlerOptions{Level: slog.LevelDebug}))
+
+	config := testConfig(ts.URL)
+
+	icingaClient := icinga2.NewClient(config, logger)
+
+	gc := NewGarbageCollector(config, logger, icingaClient)
+
+	svc := icinga2.Service{
+		HostName: "unittest",
+		Name:     "svc",
+		Vars: icinga2.Vars{
+			"keep_for":        20.0,
+			"label_heartbeat": "300s",
+		},
+		LastStateChange: 1770000000.0,
+		DowntimeDepth:   1,
+	}
+
+	actualErr := gc.removeServiceIfRequired(context.Background(), svc)
+
+	if actualErr != nil {
+		t.Errorf("expected no error got %v", actualErr)
+	}
+
+	actual := buf.String()
+	expected := "Deleting service at Icinga API"
+
+	if !strings.Contains(actual, expected) {
+		t.Fatalf("expected:\n %v, got:\n %v", expected, actual)
 	}
 }
 

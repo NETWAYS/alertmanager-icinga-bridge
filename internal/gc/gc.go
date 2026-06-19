@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
+// Package gc provides the garbage collector that handles cleanup at the Icinga API
 package gc
 
 import (
@@ -107,7 +108,6 @@ func (g *GarbageCollector) start(ctx context.Context) {
 
 					if errSvcRemove != nil {
 						g.logger.Error("Could not remove service from Icinga", "component", "gc", "service", svc.Name, "error", errSvcRemove.Error())
-						return
 					}
 				}
 
@@ -165,7 +165,7 @@ func (g *GarbageCollector) heartbeat(ctx context.Context) {
 func (g *GarbageCollector) removeServiceIfRequired(ctx context.Context, service icinga2.Service) error {
 	_, heartbeat := service.Vars["label_heartbeat"]
 
-	if heartbeat && service.HasDowntime() {
+	if heartbeat && !service.HasDowntime() {
 		g.logger.Debug("Skipping heartbeat and not downtimed service", "component", "gc", "service", service.Name)
 		return nil
 	}
@@ -186,7 +186,7 @@ func (g *GarbageCollector) removeServiceIfRequired(ctx context.Context, service 
 
 	if errDel != nil {
 		g.logger.Error("Could not remove service", "component", "gc", "service", svcName, "error", errDel.Error())
-		return fmt.Errorf("could remove service: %w", errDel)
+		return fmt.Errorf("could not remove service: %w", errDel)
 	}
 
 	g.logger.Info("Successfully removed service from Icinga", "component", "gc", "service", svcName)
