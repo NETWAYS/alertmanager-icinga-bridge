@@ -282,6 +282,8 @@ This can be used to map alerts like a `DeadMansSwitch`. In Prometheus a "watchdo
 
 To treat an alert as a "heartbeat" the alert must have a label `heartbeat` with a [Golang duration](https://pkg.go.dev/time#ParseDuration) as value (e.g. `heartbeat: "1d"`).
 
+To enable garbage collection on these alerts they can be set to downtime. A heartbeat service with an active downtime will be removed by the garbage collection.
+
 The Alertmanager-Icinga-Bridge will create an Icinga service check with active checks enabled and with the check interval set to the parsed duration.
 We add 10% to the parsed duration to account for network latency etc., which could otherwise lead to flapping heartbeat checks.
 

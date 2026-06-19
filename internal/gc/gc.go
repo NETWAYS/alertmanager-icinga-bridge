@@ -165,7 +165,7 @@ func (g *GarbageCollector) heartbeat(ctx context.Context) {
 func (g *GarbageCollector) removeServiceIfRequired(ctx context.Context, service icinga2.Service) error {
 	_, heartbeat := service.Vars["label_heartbeat"]
 
-	if heartbeat && service.HasDowntime() {
+	if heartbeat && !service.HasDowntime() {
 		g.logger.Debug("Skipping heartbeat and not downtimed service", "component", "gc", "service", service.Name)
 		return nil
 	}
