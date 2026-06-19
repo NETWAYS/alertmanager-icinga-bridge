@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
+// Package gc provides the garbage collector that handles cleanup at the Icinga API
 package gc
 
 import (

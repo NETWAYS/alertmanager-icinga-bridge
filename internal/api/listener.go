@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
+// Package api provides the HTTP handler that exposes the bride's HTTP API
 package api
 
 import (

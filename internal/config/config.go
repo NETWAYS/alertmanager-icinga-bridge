@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
+// Package config provides the central configuration of the tool and the CLI options
 package config
 
 import (

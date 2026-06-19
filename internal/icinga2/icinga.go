@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
+// Package icinga2 provides the HTTP client to talk to the Icinga API
 package icinga2
 
 import (
