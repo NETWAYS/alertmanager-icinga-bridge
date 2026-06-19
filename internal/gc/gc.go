@@ -108,7 +108,6 @@ func (g *GarbageCollector) start(ctx context.Context) {
 
 					if errSvcRemove != nil {
 						g.logger.Error("Could not remove service from Icinga", "component", "gc", "service", svc.Name, "error", errSvcRemove.Error())
-						return
 					}
 				}
 
@@ -187,7 +186,7 @@ func (g *GarbageCollector) removeServiceIfRequired(ctx context.Context, service 
 
 	if errDel != nil {
 		g.logger.Error("Could not remove service", "component", "gc", "service", svcName, "error", errDel.Error())
-		return fmt.Errorf("could remove service: %w", errDel)
+		return fmt.Errorf("could not remove service: %w", errDel)
 	}
 
 	g.logger.Info("Successfully removed service from Icinga", "component", "gc", "service", svcName)

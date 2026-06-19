@@ -22,7 +22,6 @@ import (
 const (
 	icingaActionProcessCheckResultEndpoint = "/v1/actions/process-check-result/"
 	icingaHostEndpoint                     = "/v1/objects/hosts/"
-	icingaHostgroupEndpoint                = "/v1/objects/hostgroups/"
 	icingaServiceEndpoint                  = "/v1/objects/services/"
 )
 
