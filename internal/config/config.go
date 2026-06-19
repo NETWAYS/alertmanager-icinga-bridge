@@ -31,13 +31,12 @@ type Config struct {
 	CustomSeverityLevels map[string]string
 	MergedSeverityLevels map[string]int
 
-	PluginOutputByStates      bool
-	BearerToken               string
-	ListenAddr                string
-	TLSCertPath               string
-	TLSKeyPath                string
-	PluginOutputAnnotations   []string
-	PluginOutputStateSuffixes []string
+	PluginOutputByStates    bool
+	BearerToken             string
+	ListenAddr              string
+	TLSCertPath             string
+	TLSKeyPath              string
+	PluginOutputAnnotations []string
 
 	IcingaDisableKeepAlives bool
 	IcingaHostname          string
