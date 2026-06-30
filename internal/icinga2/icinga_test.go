@@ -3,6 +3,7 @@
 package icinga2
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"io"
@@ -11,6 +12,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/NETWAYS/alertmanager-icinga-bridge/internal/config"
@@ -55,6 +57,33 @@ func TestServiceFullName(t *testing.T) {
 
 	if svc.FullName() != expected {
 		t.Fatalf("expected:\n %s \ngot:\n %s", expected, svc.FullName())
+	}
+}
+
+func TestGetHost_WithInvalidReponse(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`<invalid JSON>`))
+	}))
+
+	defer server.Close()
+
+	var buf bytes.Buffer
+	logger := slog.New(slog.NewTextHandler(&buf, &slog.HandlerOptions{Level: slog.LevelDebug}))
+
+	client := NewClient(testConfig(server.URL), logger)
+
+	_, err := client.GetHost(context.Background(), "unittest")
+
+	if err == nil {
+		t.Fatalf("expected error, got nil")
+	}
+
+	actual := buf.String()
+	expected := "Response body: <invalid JSON>"
+
+	if !strings.Contains(actual, expected) {
+		t.Fatalf("expected %v, got %v", expected, actual)
 	}
 }
 
