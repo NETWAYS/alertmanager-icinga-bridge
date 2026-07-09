@@ -69,7 +69,7 @@ Flags:
 --plugin-output-annotations=message,...    List of Annotation names to be used to set the plugin output for the Icinga service ($ALERTMANAGER_ICINGA_BRIDGE_PLUGINOUTPUT_ANNOTATIONS)
 --checks-interval=12h                      Interval (in seconds) to be used for Icinga check_interval and retry_interval ($ALERTMANAGER_ICINGA_BRIDGE_SERVICE_CHECKS_INTERVAL)
 --keep-for=168h                            How long to keep created alerts around after they have been resolved ($ALERTMANAGER_ICINGA_BRIDGE_KEEP_FOR)
---static-service-vars=KEY=VALUE;...        Custom variable to be set for craeted Icinga services (variable=value, can be repeated) ($ALERTMANAGER_ICINGA_BRIDGE_STATIC_SERVICE_VAR)
+--static-service-vars=KEY=VALUE;...        Custom variable to be set for created Icinga services (variable=value, can be repeated) ($ALERTMANAGER_ICINGA_BRIDGE_STATIC_SERVICE_VAR)
 ```
 
 Most flags can be set with environment variables, refer to the help to see which flags.

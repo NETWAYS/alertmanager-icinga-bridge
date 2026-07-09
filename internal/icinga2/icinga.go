@@ -14,6 +14,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/NETWAYS/alertmanager-icinga-bridge/internal/config"
@@ -71,7 +72,7 @@ func NewClient(config *config.Config, logger *slog.Logger) *Client {
 
 // Do is a small wrapper that tries the given request against all given Icinga API endpoints
 func (c *Client) Do(req *http.Request, path string) (*http.Response, error) {
-	lastErr := ErrNoEndpointReachable
+	var endpointErrors strings.Builder
 
 	for _, base := range c.IcingaURL {
 		req.URL, _ = req.URL.Parse(base + path)
@@ -87,15 +88,16 @@ func (c *Client) Do(req *http.Request, path string) (*http.Response, error) {
 		resp, err := c.httpClient.Do(req)
 
 		if err != nil {
-			// Got an error while trying to reach the endpoint, trying the next
-			lastErr = err
+			c.logger.Warn(fmt.Sprintf("Icinga API not reachable at %s. Trying next endpoint", req.URL), "component", "icinga", "error", err.Error())
+			fmt.Fprintf(&endpointErrors, " error: '%s' from '%s'", req.URL, err.Error())
 
+			// Trying the next endpoint
 			continue
 		}
 
 		if resp.StatusCode >= 500 {
 			resp.Body.Close()
-			lastErr = fmt.Errorf("error %d from %s", resp.StatusCode, req.URL)
+			fmt.Fprintf(&endpointErrors, " error: '%d' from '%s'", resp.StatusCode, req.URL)
 
 			continue
 		}
@@ -103,7 +105,7 @@ func (c *Client) Do(req *http.Request, path string) (*http.Response, error) {
 		return resp, nil
 	}
 
-	return nil, fmt.Errorf("all endpoints failed, last error: %w", lastErr)
+	return nil, fmt.Errorf("failed to call one of the configured endpoints. %s", endpointErrors.String())
 }
 
 // ProcessCheckResult handles a process-check-result for a given service
@@ -173,6 +175,7 @@ func (c *Client) GetHost(ctx context.Context, name string) (Host, error) {
 	errDecode := json.Unmarshal(bodyBytes, &result)
 
 	if errDecode != nil {
+		c.logger.Debug("Response body: " + string(bodyBytes))
 		return Host{}, fmt.Errorf("could not unmarshal JSON: %w", errDecode)
 	}
 
@@ -216,6 +219,7 @@ func (c *Client) GetService(ctx context.Context, name string) (Service, error) {
 	errDecode := json.Unmarshal(bodyBytes, &result)
 
 	if errDecode != nil {
+		c.logger.Debug("Response body: " + string(bodyBytes))
 		return Service{}, fmt.Errorf("could not unmarshal JSON: %w", errDecode)
 	}
 
@@ -265,6 +269,7 @@ func (c *Client) GetServices(ctx context.Context, filter QueryFilter) ([]Service
 	errDecode := json.Unmarshal(bodyBytes, &result)
 
 	if errDecode != nil {
+		c.logger.Debug("Response body: " + string(bodyBytes))
 		return []Service{}, fmt.Errorf("could not unmarshal JSON: %w", errDecode)
 	}
 
