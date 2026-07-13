@@ -140,7 +140,8 @@ func (g *GarbageCollector) heartbeat(ctx context.Context) {
 
 			if errSvc != nil {
 				g.logger.Error("Could not fetch heartbeat service from Icinga", "component", "gc", "error", errSvc.Error())
-				return
+				// Skip this tick, we will try next time
+				continue
 			}
 
 			action := icinga2.Action{
@@ -152,7 +153,8 @@ func (g *GarbageCollector) heartbeat(ctx context.Context) {
 
 			if errProcess != nil {
 				g.logger.Error("Could not process-check-result for heartbeat", "component", "gc", "error", errProcess.Error())
-				return
+				// Skip this tick, we will try next time
+				continue
 			}
 
 			g.logger.Info("Successfully sent heartbeat to Icinga", "component", "gc", "service", g.serviceName)
