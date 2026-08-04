@@ -75,7 +75,14 @@ func (c *Client) Do(req *http.Request, path string) (*http.Response, error) {
 	var endpointErrors strings.Builder
 
 	for _, base := range c.IcingaURL {
+		// Since we determine what the path ist, this probably won't fail
 		req.URL, _ = req.URL.Parse(base + path)
+
+		// Reset the body for the attempt, http.Client.Do always drains/closes
+		if req.GetBody != nil {
+			body, _ := req.GetBody()
+			req.Body = body
+		}
 
 		c.logger.Debug(fmt.Sprintf("Calling Icinga API at %s", req.URL), "component", "icinga")
 
@@ -105,7 +112,7 @@ func (c *Client) Do(req *http.Request, path string) (*http.Response, error) {
 		return resp, nil
 	}
 
-	return nil, fmt.Errorf("failed to call one of the configured endpoints. %s", endpointErrors.String())
+	return nil, fmt.Errorf("%w: %s", ErrNoEndpointReachable, endpointErrors.String())
 }
 
 // ProcessCheckResult handles a process-check-result for a given service
@@ -135,7 +142,7 @@ func (c *Client) ProcessCheckResult(ctx context.Context, service Service, action
 		return errDo
 	}
 
-	defer res.Body.Close()
+	defer closeBody(res)
 
 	if res.StatusCode == http.StatusNotFound {
 		return ErrNotFound
@@ -168,7 +175,11 @@ func (c *Client) GetHost(ctx context.Context, name string) (Host, error) {
 		return Host{}, ErrNotFound
 	}
 
-	bodyBytes, _ := io.ReadAll(res.Body)
+	bodyBytes, errReadBody := io.ReadAll(res.Body)
+
+	if errReadBody != nil {
+		return Host{}, fmt.Errorf("could not read HTTP body: %w", errReadBody)
+	}
 
 	result := HostResults{}
 
@@ -212,7 +223,11 @@ func (c *Client) GetService(ctx context.Context, name string) (Service, error) {
 		return Service{}, ErrNotFound
 	}
 
-	bodyBytes, _ := io.ReadAll(res.Body)
+	bodyBytes, errReadBody := io.ReadAll(res.Body)
+
+	if errReadBody != nil {
+		return Service{}, fmt.Errorf("could not read HTTP body: %w", errReadBody)
+	}
 
 	result := ServiceResults{}
 
@@ -262,7 +277,11 @@ func (c *Client) GetServices(ctx context.Context, filter QueryFilter) ([]Service
 		return []Service{}, ErrNotFound
 	}
 
-	bodyBytes, _ := io.ReadAll(res.Body)
+	bodyBytes, errReadBody := io.ReadAll(res.Body)
+
+	if errReadBody != nil {
+		return []Service{}, fmt.Errorf("could not read HTTP body: %w", errReadBody)
+	}
 
 	result := ServiceResults{}
 
@@ -310,7 +329,7 @@ func (c *Client) CreateService(ctx context.Context, service Service) error {
 		return errDo
 	}
 
-	defer res.Body.Close()
+	defer closeBody(res)
 
 	c.logger.Debug("Created service at Icinga API", "component", "icinga")
 
@@ -343,7 +362,7 @@ func (c *Client) UpdateService(ctx context.Context, service Service) error {
 		return errDo
 	}
 
-	defer res.Body.Close()
+	defer closeBody(res)
 
 	c.logger.Debug("Updated service at Icinga API", "component", "icinga")
 
@@ -374,9 +393,17 @@ func (c *Client) DeleteService(ctx context.Context, name string) error {
 		return errDo
 	}
 
-	defer res.Body.Close()
+	defer closeBody(res)
 
 	c.logger.Debug("Deleted service at Icinga API", "component", "icinga")
 
 	return nil
+}
+
+// closeBody ensures the body is read and then closed.
+// Used in calls where we don't need to read the body.
+func closeBody(res *http.Response) {
+	//nolint: errcheck
+	io.Copy(io.Discard, res.Body)
+	res.Body.Close()
 }
