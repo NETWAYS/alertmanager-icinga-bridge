@@ -11,11 +11,41 @@ Other Icinga and Prometheus integrations we provide:
 
 ## Installation
 
-The `alertmanager-icinga-bridge` is available as an executable in the GitHub Releases and as a container image `ghcr.io/netways/alertmanager-icinga-bridge`.
+The `alertmanager-icinga-bridge` is available as an executable in the GitHub Releases, a container image and Linux repositories.
 
-* Install and start the `alertmanager-icinga-bridge` executable
-* Create an Icinga host and API user for Alertmanager-Icinga-Bridge
-* Create an Icinga service template for the managed services
+1. Install and start the `alertmanager-icinga-bridge`
+2. Create an Icinga host and API user for Alertmanager-Icinga-Bridge
+3. Create an Icinga service template for the managed services
+
+### Container
+
+A container image is available at:
+
+```
+ghcr.io/netways/alertmanager-icinga-bridge
+```
+
+### Packages
+
+NETWAYS provides this tool via [https://packages.netways.de](https://packages.netways.de/).
+
+To install this module, follow the setup instructions for the **extras** repository.
+
+**RHEL or compatible:**
+
+`dnf install alertmanager-icinga-bridge`
+
+**Ubuntu/Debian:**
+
+`apt install alertmanager-icinga-bridge`
+
+## Usage
+
+When started, Alertmanager-Icinga-Bridge listens to HTTP requests on the following paths:
+
+* `/webhook` Endpoint to accept alerts from Alertmanager.
+* `/healthz` returns HTTP 200 with `ok` as its payload as long as the webhook
+  serving loop is operational.
 
 Example:
 
@@ -28,14 +58,6 @@ alertmanager-icinga-bridge \
  --icinga-password icinga-example-api-password \
  --bearer-token alertmanager-example-token
 ```
-
-## Usage
-
-When started, Alertmanager-Icinga-Bridge listens to HTTP requests on the following paths:
-
-* `/webhook` Endpoint to accept alerts from Alertmanager.
-* `/healthz` returns HTTP 200 with `ok` as its payload as long as the webhook
-  serving loop is operational.
 
 ## Configuration
 
