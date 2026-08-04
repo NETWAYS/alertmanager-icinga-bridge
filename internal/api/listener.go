@@ -220,7 +220,7 @@ func (l *Listener) manageIcingaService(ctx context.Context, payload WebhookPaylo
 
 		exitCode := severityToExitCode(alert.Status, alert.Labels["severity"], l.config.MergedSeverityLevels)
 
-		svc, errUpsert := l.updateOrCreateService(ctx, serviceName, displayName, exitCode, alert)
+		svc, errUpsert := l.updateOrCreateService(ctxIcinga, serviceName, displayName, exitCode, alert)
 
 		if errUpsert != nil {
 			return errUpsert
@@ -247,7 +247,7 @@ func (l *Listener) manageIcingaService(ctx context.Context, payload WebhookPaylo
 			PluginOutput: pluginOutput,
 		}
 
-		errProcess := l.icingaClient.ProcessCheckResult(ctx, svc, action)
+		errProcess := l.icingaClient.ProcessCheckResult(ctxIcinga, svc, action)
 
 		if errProcess != nil {
 			return errProcess
