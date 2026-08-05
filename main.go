@@ -23,7 +23,6 @@ var (
 	// These get filled at build time with the proper values.
 	version = "development"
 	commit  = "HEAD"
-	date    = "latest"
 )
 
 // buildVersion creates a string that contains the executable's version
@@ -32,10 +31,6 @@ func buildVersion() string {
 
 	if commit != "" {
 		result = fmt.Sprintf("%s\ncommit: %s", result, commit)
-	}
-
-	if date != "" {
-		result = fmt.Sprintf("%s\ndate: %s", result, date)
 	}
 
 	return result
@@ -68,7 +63,7 @@ func main() {
 	// Create Icinga Client
 	icingaClient := icinga2.NewClient(cfg, logger)
 
-	logger.Info("Starting alertmanager-icinga-bridge", "version", version, "commit", commit, "date", date, "component", "main")
+	logger.Info("Starting alertmanager-icinga-bridge", "version", version, "commit", commit, "component", "main")
 
 	// Create and start the Service Garbage Collector
 	garbagecol := gc.NewGarbageCollector(cfg, logger, icingaClient)
