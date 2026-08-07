@@ -33,11 +33,11 @@ To install this module, follow the setup instructions for the **extras** reposit
 
 **RHEL or compatible:**
 
-`dnf install alertmanager-icinga-bridge`
+`dnf install netways-alertmanager-icinga-bridge`
 
 **Ubuntu/Debian:**
 
-`apt install alertmanager-icinga-bridge`
+`apt install netways-alertmanager-icinga-bridge`
 
 ## Usage
 
