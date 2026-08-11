@@ -3,6 +3,9 @@ version: 2
 before:
   hooks:
     - go mod download
+sboms:
+  - artifacts: binary
+    args: ["$artifact", "--output", "cyclonedx-json=$document"]
 builds:
   - env:
       - CGO_ENABLED=0
