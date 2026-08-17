@@ -1,0 +1,97 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "alertmanager-icinga-bridge.fullname" . }}
+  labels:
+    app.kubernetes.io/name: {{ include "alertmanager-icinga-bridge.name" . }}
+    helm.sh/chart: {{ include "alertmanager-icinga-bridge.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "alertmanager-icinga-bridge.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "alertmanager-icinga-bridge.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+      annotations:
+        checksum/tokens-secret: {{ include (print .Template.BasePath "/secret.yaml") . | sha256sum }}
+    spec:
+      serviceAccountName: {{ include "alertmanager-icinga-bridge.serviceAccountName" . }}
+      {{- if .Values.securityContext.enabled }}
+      securityContext:
+        fsGroup: {{ .Values.securityContext.fsGroup }}
+        runAsUser: {{ .Values.securityContext.runAsUser }}
+      {{- end }}
+      containers:
+        - name: {{ .Chart.Name }}
+          image: {{ .Values.image.registry }}/{{ .Values.image.repository }}:{{ .Values.image.tag }}
+          env:
+          - name: ALERTMANAGER_ICINGA_BRIDGE_ID
+            value: {{ required ".Values.config.id is required" .Values.config.id | quote }}
+          - name: ALERTMANAGER_ICINGA_BRIDGE_ICINGA_HOSTNAME
+            value: {{ required ".Values.config.icinga_hostname is required" .Values.config.icinga_hostname | quote }}
+          - name: ALERTMANAGER_ICINGA_BRIDGE_ICINGA_URL
+            value:  {{ required ".Values.config.icinga_url is required" .Values.config.icinga_url | quote }}
+          - name: ALERTMANAGER_ICINGA_BRIDGE_ICINGA_USERNAME
+            value: {{ required ".Values.config.icinga_username is required" .Values.config.icinga_username | quote }}
+          - name: ALERTMANAGER_ICINGA_BRIDGE_ICINGA_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: {{ .Values.config.icinga_password_secret | default (printf "%s" (include "alertmanager-icinga-bridge.fullname" .)) | quote }}
+                key: "icinga_password"
+          - name: ALERTMANAGER_ICINGA_BRIDGE_LISTEN_ADDR
+            value: {{ printf "0.0.0.0:%v" .Values.config.alertmanager_port | quote }}
+          - name: ALERTMANAGER_ICINGA_BRIDGE_BEARER_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: {{ .Values.config.alertmanager_bearer_token_secret | default (printf "%s" (include "alertmanager-icinga-bridge.fullname" .)) | quote }}
+                key: "alertmanager_bearer_token"
+{{- if .Values.extraEnvVars }}
+{{ toYaml .Values.extraEnvVars | indent 10 }}
+{{- end }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.config.alertmanager_port }}
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          {{- if .Values.extraVolumeMounts }}
+          volumeMounts:
+          {{- toYaml .Values.extraVolumeMounts | nindent 12 }}
+          {{- end }}
+      {{- if .Values.extraVolumes }}
+      volumes:
+        {{- toYaml .Values.extraVolumes | nindent 8 }}
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+    {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+      imagePullSecrets:
+    {{- if .Values.image.existingPullSecret }}
+        - name: {{ .Values.image.existingPullSecret }}
+    {{- else if .Values.image.password }}
+        - name: {{ template "alertmanager-icinga-bridge.fullname" . }}-pullsecret
+    {{- end }}
