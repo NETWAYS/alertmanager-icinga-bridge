@@ -1,0 +1,82 @@
+# Default values for alertmanager-icinga-bridge.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 1
+
+image:
+  registry: ghcr.io/netways
+  repository: alertmanager-icinga-bridge
+  tag: 1.0.3
+  pullPolicy: IfNotPresent
+  # username:
+  # password:
+  # existingPullSecret: my-image-pull-secret
+
+nameOverride: ""
+fullnameOverride: ""
+
+# Required configuration
+config:
+  id: alertmanagerID
+  icinga_hostname: Alertmanager
+  icinga_url: https://icinga.internal:5665
+  icinga_username: icinga-example-api-user
+  icinga_password: icinga-example-api-password
+  alertmanager_port: 8888
+  # alertmanager_bearer_token: aaaaaa
+  # alertmanager_bearer_token_secret: 
+
+# Optional extra configuration
+# extraEnvVars:
+# - name: ALERTMANAGER_ICINGA_BRIDGE_LOGLEVEL
+#   value: "debug"
+# - name: ALERTMANAGER_ICINGA_BRIDGE_ICINGA_CA
+#   value: |
+#     -----BEGIN CERTIFICATE-----
+#     ....
+#     -----END CERTIFICATE-----
+# - name: ALERTMANAGER_ICINGA_BRIDGE_ICINGA_INSECURE_TLS
+#   value: "false"
+# - name: ALERTMANAGER_ICINGA_BRIDGE_GC_INTERVAL
+#   value: "15m"
+# - name: ALERTMANAGER_ICINGA_BRIDGE_HEARTBEAT_INTERVAL
+#   value: "1m"
+# - name: ALERTMANAGER_ICINGA_BRIDGE_KEEP_FOR
+#   value: "168h"
+# - name: ALERTMANAGER_ICINGA_BRIDGE_SERVICE_TEMPLATE
+#   value: "generic-service"
+#
+# Extra volumes for the alertmanager-icinga-bridge deployment. Optional.
+extraVolumes: []
+
+# Extra volumeMounts for the alertmanager-icinga-bridge deployment. Optional.
+extraVolumeMounts: []
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+  # Annotations to add to the service account
+  annotations: {}
+
+securityContext:
+  enabled: false
+  runAsUser: 999
+  fsGroup: 999
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 64Mi
+  limits:
+    cpu: 200m
+    memory: 128Mi
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
