@@ -32,12 +32,18 @@ type Config struct {
 	CustomSeverityLevels map[string]string
 	MergedSeverityLevels map[string]int
 
-	PluginOutputByStates    bool
-	BearerToken             string
-	ListenAddr              string
-	TLSCertPath             string
-	TLSKeyPath              string
-	PluginOutputAnnotations []string
+	PluginOutputByStates bool
+	BearerToken          string
+	ListenAddr           string
+	TLSCertPath          string
+	TLSKeyPath           string
+
+	PluginOutputAnnotations  []string
+	IcingaHostObjectLabels   []string
+	IcingaHostZoneLabels     []string
+	IcingaHostTemplateLabels []string
+	NotesTextAnnotations     []string
+	NotesURLAnnotations      []string
 
 	IcingaDisableKeepAlives bool
 	IcingaHostname          string
@@ -69,8 +75,13 @@ func NewConfigFromCLI(cli *CLI) (*Config, error) {
 		IcingaTemplates:          cli.Templates,
 		MaxCheckAttempts:         float64(cli.MaxCheckAttempts),
 		AlertFingerprintExcludes: cli.AlertFingerprintExcludes,
-		PluginOutputAnnotations:  cli.PluginOutputAnnotations,
 		PluginOutputByStates:     cli.PluginOutputByStates,
+		PluginOutputAnnotations:  cli.PluginOutputAnnotations,
+		IcingaHostObjectLabels:   cli.IcingaHostObjectLabels,
+		IcingaHostZoneLabels:     cli.IcingaHostZoneLabels,
+		IcingaHostTemplateLabels: cli.IcingaHostTemplateLabels,
+		NotesTextAnnotations:     cli.NotesTextAnnotations,
+		NotesURLAnnotations:      cli.NotesURLAnnotations,
 		StaticServiceVars:        cli.StaticServiceVars,
 		MergedSeverityLevels:     mergeSeverityLevels(cli.CustomSeverityLevels),
 	}

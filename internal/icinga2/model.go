@@ -5,6 +5,7 @@ package icinga2
 import (
 	"encoding/json"
 	"strconv"
+	"strings"
 )
 
 type PerfData []string
@@ -19,17 +20,95 @@ type QueryFilter struct {
 	Filter string `json:"filter"`
 }
 
+type ExitStatus int
+
+const (
+	ExitStatusOK = iota
+	ExitStatusWarning
+	ExitStatusCritical
+	ExitStatusUnknown
+)
+
+// ParseExitStatus attempts to parse the given value
+// as number and falls back to matching against
+// well-known names. if either of those fails,
+// an error is returned.
+func ParseExitStatus(s string) (ExitStatus, error) {
+	i, err := strconv.ParseInt(s, 10, 8)
+	if err == nil {
+		return ExitStatus(i), nil
+	}
+
+	switch v := strings.ToUpper(s); v {
+	case "OK":
+		return ExitStatusOK, nil
+	case "WARNING":
+		return ExitStatusWarning, nil
+	case "CRITICAL":
+		return ExitStatusCritical, nil
+	case "UNKNOWN":
+		return ExitStatusUnknown, nil
+	}
+
+	// return the numeric parsing error from above
+	return ExitStatusOK, err
+}
+
+// Validate determines if the instance is a well-known
+// implementation
+func (es ExitStatus) Validate() bool {
+	return ExitStatusOK <= es && es <= ExitStatusUnknown
+}
+
+// ExitCode returns the process exit code this instance represents.
+func (es ExitStatus) ExitCode() int {
+	return int(es)
+}
+
+// String returns the name for the exit code.
+// values outside of the valid range are their
+// numeric representation prefixed with "EXIT_"
+func (es ExitStatus) String() string {
+	switch es {
+	case ExitStatusOK:
+		return "OK"
+	case ExitStatusWarning:
+		return "WARNING"
+	case ExitStatusCritical:
+		return "CRITICAL"
+	case ExitStatusUnknown:
+		return "UNKNOWN"
+	default:
+		return "EXIT_" + strconv.FormatInt(int64(es), 10)
+	}
+}
+
+// MarshalJSON implements [encoding/json.Marshaler] by calling
+// [ExitStatus.MarshalText], as the preferred way of serializing exit codes is
+// using their numeric representation.
+func (es ExitStatus) MarshalJSON() ([]byte, error) {
+	return es.MarshalText()
+}
+
+// MarshalText implements [encoding.TextMarshaler] by calling
+// [strconv.FormatInt] on itself.
+func (es ExitStatus) MarshalText() ([]byte, error) {
+	s := strconv.FormatInt(int64(es), 10)
+
+	return []byte(s), nil
+}
+
 type Action struct {
-	ExitStatus      int       `json:"exit_status"`
-	PluginOutput    string    `json:"plugin_output"`
-	PerformanceData PerfData  `json:"performance_data,omitempty"`
-	CheckCommand    Command   `json:"check_command,omitempty"`
-	CheckSource     string    `json:"check_source,omitempty"`
-	ExecutionStart  TimeStamp `json:"execution_start,omitempty"`
-	ExecutionEnd    TimeStamp `json:"execution_end,omitempty"`
-	TTL             int       `json:"ttl"`
-	Filter          string    `json:"filter"`
-	Type            string    `json:"type"`
+	ExitStatus      ExitStatus `json:"exit_status"`
+	PluginOutput    string     `json:"plugin_output"`
+	PerformanceData PerfData   `json:"performance_data,omitempty"`
+	CheckCommand    Command    `json:"check_command,omitempty"`
+	CheckSource     string     `json:"check_source,omitempty"`
+	ExecutionStart  TimeStamp  `json:"execution_start,omitempty"`
+	ExecutionEnd    TimeStamp  `json:"execution_end,omitempty"`
+	TTL             int        `json:"ttl"`
+	Filter          string     `json:"filter"`
+	Type            string     `json:"type"`
 }
 
 type Host struct {
