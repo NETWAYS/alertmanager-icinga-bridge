@@ -3,27 +3,82 @@
 package config
 
 import (
+	"errors"
+	"log/slog"
 	"time"
 
 	"github.com/alecthomas/kong"
 )
 
+var (
+	errStatusCodeOutOfBounds = errors.New("status code must be between 0 and 3 (inclusive)")
+	errLogLevelOutOfBounds   = errors.New("log level must be one of debug, info, warn, or error")
+)
+
+type StatusCode int
+
+func (sc StatusCode) Validate() error {
+	if 0 > sc || sc > 3 {
+		return errStatusCodeOutOfBounds
+	}
+
+	return nil
+}
+
+type LogLevel int
+
+func (ll LogLevel) Validate() error {
+	switch sl := slog.Level(ll); sl {
+	case slog.LevelDebug:
+		return nil
+	case slog.LevelInfo:
+		return nil
+	case slog.LevelWarn:
+		return nil
+	case slog.LevelError:
+		return nil
+	default:
+		return errLogLevelOutOfBounds
+	}
+}
+
+// UnmarshalText implements [encoding.TextUnmarshaler]. It uses [slog.Level.UnmarshalText]
+// for the actual parsing.
+func (ll *LogLevel) UnmarshalText(data []byte) error {
+	var sl slog.Level
+
+	err := sl.UnmarshalText(data)
+	if err != nil {
+		return err
+	}
+
+	*ll = LogLevel(sl)
+
+	return nil
+}
+
+// Level implements [slog.Leveler].
+func (ll LogLevel) Level() slog.Level {
+	return slog.Level(ll)
+}
+
 type CLI struct {
 	// General
 	ID       string           `kong:"required,env='ALERTMANAGER_ICINGA_BRIDGE_ID',help='Instance ID'"`
-	Loglevel string           `kong:"default='info',env='ALERTMANAGER_ICINGA_BRIDGE_LOGLEVEL',help='Loglevel (debug, info, warn, error)'"`
+	Loglevel LogLevel         `kong:"default='info',env='ALERTMANAGER_ICINGA_BRIDGE_LOGLEVEL',help='Loglevel (debug, info, warn, error)'"`
 	Version  kong.VersionFlag `kong:"help='Print version information and quit'"`
 
 	// Icinga Client
-	IcingaURL                []string          `kong:"required,env='ALERTMANAGER_ICINGA_BRIDGE_ICINGA_URL',help='Icinga API URL (can be repeated)'"`
-	IcingaHostname           string            `kong:"required,env='ALERTMANAGER_ICINGA_BRIDGE_ICINGA_HOSTNAME',help='Icinga host name to manage services for'"`
-	DisableKeepAlives        bool              `kong:"default=false,env='ALERTMANAGER_ICINGA_BRIDGE_DISABLE_KEEPALIVES',help='Disable HTTP keepalives'"`
-	DisplayNameAsServiceName bool              `kong:"default=false,env='ALERTMANAGER_ICINGA_BRIDGE_DISPLAY_NAME_AS_SERVICE_NAME',help='Set the Icinga service display name to the generated service name'"`
-	IcingaInsecureTLS        bool              `kong:"default=false,env='ALERTMANAGER_ICINGA_BRIDGE_ICINGA_INSECURE_TLS',help='Skip Icinga TLS verification'"`
-	IcingaCAFile             string            `kong:"env='ALERTMANAGER_ICINGA_BRIDGE_ICINGA_CA',help='Path of a custom CA certificate to use when connecting to the Icinga API'"`
-	IcingaPassword           string            `kong:"required,env='ALERTMANAGER_ICINGA_BRIDGE_ICINGA_PASSWORD',help='Icinga API password'"`
-	IcingaUser               string            `kong:"required,env='ALERTMANAGER_ICINGA_BRIDGE_ICINGA_USERNAME',help='Icinga API username'"`
-	CustomSeverityLevels     map[string]string `kong:"env='ALERTMANAGER_ICINGA_BRIDGE_ALERTMANAGER_CUSTOM_SEVERITY_LEVELS',help='Add or override the default mapping of severity levels to service states (severity_level=service_state)'"`
+	IcingaURL                []string `kong:"required,env='ALERTMANAGER_ICINGA_BRIDGE_ICINGA_URL',help='Icinga API URL (can be repeated)'"`
+	IcingaHostname           string   `kong:"required,env='ALERTMANAGER_ICINGA_BRIDGE_ICINGA_HOSTNAME',help='Icinga host name to manage services for'"`
+	DisableKeepAlives        bool     `kong:"default=false,env='ALERTMANAGER_ICINGA_BRIDGE_DISABLE_KEEPALIVES',help='Disable HTTP keepalives'"`
+	DisplayNameAsServiceName bool     `kong:"default=false,env='ALERTMANAGER_ICINGA_BRIDGE_DISPLAY_NAME_AS_SERVICE_NAME',help='Set the Icinga service display name to the generated service name'"`
+	IcingaInsecureTLS        bool     `kong:"default=false,env='ALERTMANAGER_ICINGA_BRIDGE_ICINGA_INSECURE_TLS',help='Skip Icinga TLS verification'"`
+	IcingaCAFile             string   `kong:"env='ALERTMANAGER_ICINGA_BRIDGE_ICINGA_CA',help='Path of a custom CA certificate to use when connecting to the Icinga API'"`
+	IcingaPassword           string   `kong:"required,env='ALERTMANAGER_ICINGA_BRIDGE_ICINGA_PASSWORD',help='Icinga API password'"`
+	IcingaUser               string   `kong:"required,env='ALERTMANAGER_ICINGA_BRIDGE_ICINGA_USERNAME',help='Icinga API username'"`
+
+	CustomSeverityLevels map[string]StatusCode `kong:"env='ALERTMANAGER_ICINGA_BRIDGE_ALERTMANAGER_CUSTOM_SEVERITY_LEVELS',help='Add or override the default mapping of severity levels to service states (severity_level=service_state)'"`
 
 	// Garbage Collector
 	GCInterval        time.Duration `kong:"default='15m',env='ALERTMANAGER_ICINGA_BRIDGE_GC_INTERVAL',help='Interval to check for and remove created services'"`
