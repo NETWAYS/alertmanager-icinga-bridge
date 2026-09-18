@@ -1,0 +1,17 @@
+{
+  "exit_status": 1,
+  "plugin_output": "test",
+  "performance_data": [
+    "test_cases=1"
+  ],
+  "check_command": [
+    "/usr/lib/nagios/plugins/check_test",
+    "--test"
+  ],
+  "check_source": "master",
+  "execution_start": "1234567890",
+  "execution_end": "1234567890",
+  "ttl": 60,
+  "filter": "1 == 1",
+  "type": "service"
+}

@@ -26,11 +26,10 @@ import (
 )
 
 var (
-	errNotAMappingKey         = errors.New("key does meet the mappable pattern")
-	errUnknownMappingType     = errors.New("unknown type")
-	pluginOutputStateSuffixes = []string{"ok", "warning", "critical", "unknown"}
-	mappingKeyPattern         = regexp.MustCompile("^icinga_([a-z]+)_(.*)$")
-	serviceNamePattern        = regexp.MustCompile(`^[-+_.:,a-zA-Z0-9 %]{1,128}$`)
+	errNotAMappingKey     = errors.New("key does meet the mappable pattern")
+	errUnknownMappingType = errors.New("unknown type")
+	mappingKeyPattern     = regexp.MustCompile("^icinga_([a-z]+)_(.*)$")
+	serviceNamePattern    = regexp.MustCompile(`^[-+_.:,a-zA-Z0-9 %]{1,128}$`)
 )
 
 // Maximum number of bytes to accept as JSON. 100MB should be more than enough
@@ -44,6 +43,12 @@ type Listener struct {
 	icingaClient         *icinga2.Client
 	serviceNameValidator *regexp.Regexp
 	fingerprintExcludes  map[string]struct{}
+	notesTextGetter      AlertFieldGetter
+	notesURLGetter       AlertFieldGetter
+	pluginOutputGetter   AlertFieldGetter
+	hostNameGetter       AlertFieldGetter
+	zoneGetter           AlertFieldGetter
+	templatesGetter      AlertFieldGetter
 }
 
 // NewListener returns a new Listener based on the given configuration
@@ -53,6 +58,17 @@ func NewListener(config *config.Config, logger *slog.Logger, icingaClient *icing
 		logger:               logger,
 		icingaClient:         icingaClient,
 		serviceNameValidator: serviceNamePattern,
+		notesTextGetter:      AnnotationsGetter(config.NotesTextAnnotations),
+		notesURLGetter:       AnnotationsGetter(config.NotesURLAnnotations),
+		hostNameGetter:       LabelsGetter(config.IcingaHostObjectLabels),
+		zoneGetter:           LabelsGetter(config.IcingaHostZoneLabels),
+		templatesGetter:      LabelsGetter(config.IcingaHostTemplateLabels),
+	}
+
+	if config.PluginOutputByStates {
+		l.pluginOutputGetter = AnnotationsPrefixGetter(config.PluginOutputAnnotations)
+	} else {
+		l.pluginOutputGetter = AnnotationsGetter(config.PluginOutputAnnotations)
 	}
 
 	l.fingerprintExcludes = make(map[string]struct{}, len(config.AlertFingerprintExcludes)+1)
@@ -243,11 +259,11 @@ func (l *Listener) manageIcingaService(ctx context.Context, payload WebhookPaylo
 		}
 
 		// Get the Plugin Output from the first Annotation we find that has some data
-		pluginOutput := l.generatePluginOutput(alert, exitCode)
+		pluginOutput := l.pluginOutputGetter.GetField(&alert, exitCode)
 
 		// heartbeat alerts will use exit code OK since they always fire and the active check will set it to not OK
 		if _, ok := alert.Labels["heartbeat"]; ok {
-			exitCode = 0
+			exitCode = icinga2.ExitStatusOK
 		}
 
 		action := icinga2.Action{
@@ -268,7 +284,7 @@ func (l *Listener) manageIcingaService(ctx context.Context, payload WebhookPaylo
 }
 
 // updateOrCreateService either updates an existing service or creates a new service
-func (l *Listener) updateOrCreateService(ctx context.Context, serviceName, displayName string, exitCode int, alert Alert) (icinga2.Service, error) {
+func (l *Listener) updateOrCreateService(ctx context.Context, serviceName, displayName string, exitCode icinga2.ExitStatus, alert Alert) (icinga2.Service, error) {
 	heartbeatInterval := time.Duration(-1)
 
 	if val, ok := alert.Labels["heartbeat"]; ok {
@@ -330,7 +346,7 @@ func (l *Listener) updateOrCreateService(ctx context.Context, serviceName, displ
 }
 
 // prepareService creates a service from the alert and other configured data
-func (l *Listener) prepareService(serviceName string, displayName string, alert Alert, status int, heartbeatInterval time.Duration) icinga2.Service {
+func (l *Listener) prepareService(serviceName string, displayName string, alert Alert, status icinga2.ExitStatus, heartbeatInterval time.Duration) icinga2.Service {
 	serviceVars := make(icinga2.Vars, 2+len(l.config.StaticServiceVars))
 
 	serviceVars["bridge_uuid"] = l.config.ID
@@ -350,9 +366,9 @@ func (l *Listener) prepareService(serviceName string, displayName string, alert 
 		HostName:           l.config.IcingaHostname,
 		CheckCommand:       l.config.CheckCommand,
 		EnableActiveChecks: l.config.ActiveChecks,
-		Notes:              alert.Annotations["description"],
+		Notes:              l.notesTextGetter.GetField(&alert, status),
 		ActionURL:          alert.GeneratorURL,
-		NotesURL:           alert.Annotations["runbook_url"],
+		NotesURL:           l.notesURLGetter.GetField(&alert, status),
 		CheckInterval:      l.config.ChecksInterval.Seconds(),
 		RetryInterval:      l.config.ChecksInterval.Seconds(),
 		// We don't usually need soft states in Icinga, since the grace
@@ -363,22 +379,22 @@ func (l *Listener) prepareService(serviceName string, displayName string, alert 
 		Vars:             serviceVars,
 	}
 
-	if value, ok := alert.Labels["icinga_use_host"]; ok {
+	if value := l.hostNameGetter.GetField(&alert, status); value != "" {
 		svc.HostName = value
 	}
 
-	if value, ok := alert.Labels["icinga_use_zone"]; ok {
+	if value := l.zoneGetter.GetField(&alert, status); value != "" {
 		svc.Zone = value
 	}
 
-	if value, ok := alert.Labels["icinga_use_template"]; ok {
+	if value := l.templatesGetter.GetField(&alert, status); value != "" {
 		svc.Templates = append(svc.Templates, value)
 	}
 
 	// Check if this is a heartbeat service and adjust serviceData accordingly
 	if heartbeatInterval.Seconds() > 0 {
 		// Set dummy text to message annotation on alert
-		svc.Vars["dummy_text"] = alert.Annotations["message"]
+		svc.Vars["dummy_text"] = l.pluginOutputGetter.GetField(&alert, status)
 		// Set exitStatus for missed heartbeat to Alert's severity
 		svc.Vars["dummy_state"] = status
 		// Add 10% onto requested check interval to allow some network latency for the check results
@@ -389,26 +405,6 @@ func (l *Listener) prepareService(serviceName string, displayName string, alert 
 	}
 
 	return svc
-}
-
-// generatePluginOutput generates the plugin output based on the alert
-func (l *Listener) generatePluginOutput(alert Alert, exitCode int) string {
-	for _, v := range l.config.PluginOutputAnnotations {
-		// If the PluginOutputByStates option is enabled then first look for an annotation with the state suffix
-		// otherwise fall back to just using the PluginOutputAnnotations value as is
-		if l.config.PluginOutputByStates {
-			// Note, I don't like PluginOutputStateSuffixes being a slice and exitCode being the index
-			if value, ok := alert.Annotations[fmt.Sprintf("%s_%s", v, pluginOutputStateSuffixes[exitCode])]; ok {
-				return value
-			}
-		}
-
-		if value, ok := alert.Annotations[v]; ok {
-			return value
-		}
-	}
-
-	return ""
 }
 
 // generateServiceName generates a unique internal service name used for Icinga
@@ -443,22 +439,20 @@ func mapToStableString(data map[string]string, excludes map[string]struct{}) str
 
 // severityToExitStatus computes an exit code which Icinga understands from
 // an alert's status and severity label
-func severityToExitCode(status string, severity string, severityLevels map[string]int) int {
-	if status == alertStatusFiring {
+func severityToExitCode(status string, severity string, severityLevels map[string]int) icinga2.ExitStatus {
+	switch status {
+	case alertStatusFiring:
 		code, ok := severityLevels[strings.ToLower(severity)]
-
 		if !ok {
-			return 3
+			return icinga2.ExitStatusUnknown
 		}
 
-		return code
+		return icinga2.ExitStatus(code)
+	case alertStatusResolved:
+		return icinga2.ExitStatusOK
+	default:
+		return icinga2.ExitStatusUnknown
 	}
-
-	if status == alertStatusResolved {
-		return 0
-	}
-
-	return 3
 }
 
 func mapIcingaVariables(vars icinga2.Vars, labels map[string]string, prefix string) icinga2.Vars {

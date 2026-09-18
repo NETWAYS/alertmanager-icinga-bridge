@@ -30,9 +30,15 @@ func testLogger() *slog.Logger {
 
 func testConfig(url string) *config.Config {
 	return &config.Config{
-		IcingaURL:      []string{url},
-		ID:             "unittest",
-		IcingaHostname: "unittest",
+		IcingaURL:                []string{url},
+		ID:                       "unittest",
+		IcingaHostname:           "unittest",
+		PluginOutputAnnotations:  []string{"message"},
+		IcingaHostObjectLabels:   []string{"icinga_use_host"},
+		IcingaHostZoneLabels:     []string{"icinga_use_zone"},
+		IcingaHostTemplateLabels: []string{"icinga_use_template"},
+		NotesTextAnnotations:     []string{"description"},
+		NotesURLAnnotations:      []string{"runbook_url"},
 	}
 }
 
@@ -228,17 +234,9 @@ func TestManageIcingaService(t *testing.T) {
 
 	var buf bytes.Buffer
 	logger := slog.New(slog.NewTextHandler(&buf, &slog.HandlerOptions{Level: slog.LevelDebug}))
-
 	config := testConfig(ts.URL)
-
 	icingaClient := icinga2.NewClient(config, logger)
-
-	l := &Listener{
-		logger:               logger,
-		config:               config,
-		icingaClient:         icingaClient,
-		serviceNameValidator: serviceNamePattern,
-	}
+	l := NewListener(config, logger, icingaClient)
 
 	alert := Alert{
 		Status: "firing",
@@ -288,10 +286,7 @@ func TestPrepareService_WithNoHeartbeat(t *testing.T) {
 		"foo": "bar",
 	}
 
-	l := &Listener{
-		logger: testLogger(),
-		config: config,
-	}
+	l := NewListener(config, testLogger(), nil)
 
 	alert := Alert{
 		Status: "firing",
@@ -318,10 +313,7 @@ func TestPrepareService_WithHeartbeat(t *testing.T) {
 		"foo": "bar",
 	}
 
-	l := &Listener{
-		logger: testLogger(),
-		config: config,
-	}
+	l := NewListener(config, testLogger(), nil)
 
 	alert := Alert{
 		Status: "firing",
@@ -352,10 +344,7 @@ func TestPrepareService_WithZoneHostTemplate(t *testing.T) {
 		"foo": "bar",
 	}
 
-	l := &Listener{
-		logger: testLogger(),
-		config: config,
-	}
+	l := NewListener(config, testLogger(), nil)
 
 	alert := Alert{
 		Status: "firing",
@@ -378,69 +367,6 @@ func TestPrepareService_WithZoneHostTemplate(t *testing.T) {
 	}
 	if svc.Zone != "myZone" {
 		t.Fatalf("expected %v, got %v", "myZone", svc.Zone)
-	}
-}
-
-func TestGeneratePluginOutput_WithPluginOutputByStates(t *testing.T) {
-	config := testConfig("")
-
-	config.PluginOutputAnnotations = []string{"barfoo", "foobar"}
-	config.PluginOutputByStates = true
-
-	l := &Listener{
-		logger: testLogger(),
-		config: config,
-	}
-
-	alert := Alert{
-		Status: "firing",
-		Labels: map[string]string{
-			"alertname": "example",
-		},
-		Annotations: map[string]string{
-			"barfoo_ok": "UNITTEST",
-			"foobar_ok": "NOTME",
-			"notme":     "NOTME",
-		},
-	}
-
-	actual := l.generatePluginOutput(alert, 0)
-	expected := "UNITTEST"
-
-	if expected != actual {
-		t.Fatalf("expected %v, got %v", expected, actual)
-	}
-}
-
-func TestGeneratePluginOutput_WithoutPluginOutputByStates(t *testing.T) {
-	config := testConfig("")
-
-	config.PluginOutputAnnotations = []string{"barfoo", "foobar"}
-	config.PluginOutputByStates = false
-
-	l := &Listener{
-		logger: testLogger(),
-		config: config,
-	}
-
-	alert := Alert{
-		Status: "firing",
-		Labels: map[string]string{
-			"alertname": "example",
-		},
-		Annotations: map[string]string{
-			"barfoo_ok": "NOT",
-			"foobar_ok": "NOTME",
-			"notme":     "NOTME",
-			"foobar":    "UNITTEST",
-		},
-	}
-
-	actual := l.generatePluginOutput(alert, 0)
-	expected := "UNITTEST"
-
-	if expected != actual {
-		t.Fatalf("expected %v, got %v", expected, actual)
 	}
 }
 
@@ -503,17 +429,17 @@ func TestSeverityToExitCode(t *testing.T) {
 		name     string
 		status   string
 		severity string
-		want     int
+		want     icinga2.ExitStatus
 	}{
-		{"firing-critical", "firing", "critical", 2},
-		{"firing-warning", "firing", "warning", 1},
-		{"firing-info", "firing", "info", 0},
-		{"firing-unknown-severity", "firing", "unknown", 3},
-		{"firing-mixed-case", "firing", "CrItIcAl", 2},
-		{"resolved-any-severity", "resolved", "critical", 0},
-		{"resolved-empty-severity", "resolved", "", 0},
-		{"other-status", "pending", "critical", 3},
-		{"empty-status", "", "critical", 3},
+		{"firing-critical", "firing", "critical", icinga2.ExitStatusCritical},
+		{"firing-warning", "firing", "warning", icinga2.ExitStatusWarning},
+		{"firing-info", "firing", "info", icinga2.ExitStatusOK},
+		{"firing-unknown-severity", "firing", "unknown", icinga2.ExitStatusUnknown},
+		{"firing-mixed-case", "firing", "CrItIcAl", icinga2.ExitStatusCritical},
+		{"resolved-any-severity", "resolved", "critical", icinga2.ExitStatusOK},
+		{"resolved-empty-severity", "resolved", "", icinga2.ExitStatusOK},
+		{"other-status", "pending", "critical", icinga2.ExitStatusUnknown},
+		{"empty-status", "", "critical", icinga2.ExitStatusUnknown},
 	}
 
 	for _, tt := range tests {
