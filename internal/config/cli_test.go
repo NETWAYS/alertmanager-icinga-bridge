@@ -273,6 +273,10 @@ func TestCLI(t *testing.T) {
 			haveCLI: append(requiredArgs, "--custom-severity-levels=foobar=WARNING"),
 			wantErr: `--custom-severity-levels: invalid map value "WARNING"`,
 		},
+		"invalid custom severity levels": {
+			haveCLI: append(requiredArgs, "--custom-severity-levels=foobar=92"),
+			wantErr: `--custom-severity-levels: status code must be between 0 and 3 (inclusive)`,
+		},
 	}
 
 	for testName, testCase := range testCases {
