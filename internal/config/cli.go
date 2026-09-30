@@ -15,6 +15,22 @@ var (
 	errLogLevelOutOfBounds   = errors.New("log level must be one of debug, info, warn, or error")
 )
 
+// StatusSet is a custom wrapper around the label-severity map so that it can
+// implement the Validate interface for Kong
+type StatusSet map[string]StatusCode
+
+func (ss StatusSet) Validate() error {
+	for _, v := range ss {
+		err := v.Validate()
+
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 type StatusCode int
 
 func (sc StatusCode) Validate() error {
@@ -78,7 +94,7 @@ type CLI struct {
 	IcingaPassword           string   `kong:"required,env='ALERTMANAGER_ICINGA_BRIDGE_ICINGA_PASSWORD',help='Icinga API password'"`
 	IcingaUser               string   `kong:"required,env='ALERTMANAGER_ICINGA_BRIDGE_ICINGA_USERNAME',help='Icinga API username'"`
 
-	CustomSeverityLevels map[string]StatusCode `kong:"env='ALERTMANAGER_ICINGA_BRIDGE_ALERTMANAGER_CUSTOM_SEVERITY_LEVELS',help='Add or override the default mapping of severity levels to service states (severity_level=service_state)'"`
+	CustomSeverityLevels StatusSet `kong:"env='ALERTMANAGER_ICINGA_BRIDGE_ALERTMANAGER_CUSTOM_SEVERITY_LEVELS',help='Add or override the default mapping of severity levels to service states (severity_level=service_state)'"`
 
 	// Garbage Collector
 	GCInterval        time.Duration `kong:"default='15m',env='ALERTMANAGER_ICINGA_BRIDGE_GC_INTERVAL',help='Interval to check for and remove created services'"`
