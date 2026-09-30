@@ -43,6 +43,7 @@ type Listener struct {
 	icingaClient         *icinga2.Client
 	serviceNameValidator *regexp.Regexp
 	fingerprintExcludes  map[string]struct{}
+	severityLevels       map[string]int
 	notesTextGetter      AlertFieldGetter
 	notesURLGetter       AlertFieldGetter
 	pluginOutputGetter   AlertFieldGetter
@@ -77,6 +78,16 @@ func NewListener(config *config.Config, logger *slog.Logger, icingaClient *icing
 	}
 
 	l.fingerprintExcludes["severity"] = struct{}{}
+
+	l.severityLevels = map[string]int{
+		"normal":   0,
+		"warning":  1,
+		"critical": 2,
+	}
+
+	for k, v := range config.CustomSeverityLevels {
+		l.severityLevels[strings.ToLower(k)] = int(v)
+	}
 
 	mux := http.NewServeMux()
 	// Register all handler functions here to have a central overview of the API
@@ -242,7 +253,7 @@ func (l *Listener) manageIcingaService(ctx context.Context, payload WebhookPaylo
 			displayName = serviceName
 		}
 
-		exitCode := severityToExitCode(alert.Status, alert.Labels["severity"], l.config.MergedSeverityLevels)
+		exitCode := severityToExitCode(alert.Status, alert.Labels["severity"], l.severityLevels)
 
 		svc, errUpsert := l.updateOrCreateService(ctxIcinga, serviceName, displayName, exitCode, alert)
 

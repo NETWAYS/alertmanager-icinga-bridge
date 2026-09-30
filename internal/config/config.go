@@ -7,8 +7,6 @@ import (
 	"crypto/tls"
 	"fmt"
 	"log/slog"
-	"strconv"
-	"strings"
 	"time"
 )
 
@@ -29,8 +27,7 @@ type Config struct {
 	HeartbeatService string
 
 	StaticServiceVars    map[string]string
-	CustomSeverityLevels map[string]string
-	MergedSeverityLevels map[string]int
+	CustomSeverityLevels map[string]StatusCode
 
 	PluginOutputByStates bool
 	BearerToken          string
@@ -83,7 +80,7 @@ func NewConfigFromCLI(cli *CLI) (*Config, error) {
 		NotesTextAnnotations:     cli.NotesTextAnnotations,
 		NotesURLAnnotations:      cli.NotesURLAnnotations,
 		StaticServiceVars:        cli.StaticServiceVars,
-		MergedSeverityLevels:     mergeSeverityLevels(cli.CustomSeverityLevels),
+		CustomSeverityLevels:     cli.CustomSeverityLevels,
 	}
 
 	// Try to load the TLS configuration
@@ -136,26 +133,4 @@ func MapLogLevel(level string) slog.Level {
 	default:
 		return slog.LevelInfo
 	}
-}
-
-// Create the default severity levels and then merge any custom ones into it.
-// This keeps the defaults for backwards compatibility and allows both additions and overrides.
-func mergeSeverityLevels(customlevels map[string]string) map[string]int {
-	allLevels := map[string]int{
-		"normal":   0,
-		"warning":  1,
-		"critical": 2,
-	}
-
-	for k, v := range customlevels {
-		// Ensure the user set configuration values are valid otherwise default to UNKNOWN
-		l, err := strconv.ParseInt(v, 10, 32)
-		if err != nil || l < 0 || l > 3 {
-			l = 3
-		}
-
-		allLevels[strings.ToLower(k)] = int(l)
-	}
-
-	return allLevels
 }
