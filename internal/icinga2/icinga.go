@@ -115,12 +115,9 @@ func (c *Client) Do(req *http.Request, path string) (*http.Response, error) {
 	return nil, fmt.Errorf("%w: %s", ErrNoEndpointReachable, endpointErrors.String())
 }
 
-// ProcessCheckResult handles a process-check-result for a given service
-func (c *Client) ProcessCheckResult(ctx context.Context, service Service, action Action) error {
+// ProcessCheckResult handles a process-check-result with a given Action
+func (c *Client) ProcessCheckResult(ctx context.Context, action Action) error {
 	c.logger.Debug("Processing CheckResult at Icinga API", "component", "icinga")
-
-	action.Filter = fmt.Sprintf("host.name==\"%s\" && service.name==\"%s\"", service.HostName, service.Name)
-	action.Type = "Service"
 
 	data, errMarshal := json.Marshal(action)
 

@@ -146,10 +146,12 @@ func (g *GarbageCollector) heartbeat(ctx context.Context) {
 
 			action := icinga2.Action{
 				ExitStatus:   0,
+				Filter:       fmt.Sprintf("host.name==\"%s\" && service.name==\"%s\"", svc.HostName, svc.Name),
+				Type:         "Service",
 				PluginOutput: fmt.Sprintf("[OK] Last Alertmanager Bridge heartbeat at: %v", time.Now().Format(time.RFC3339)),
 			}
 
-			errProcess := g.icingaClient.ProcessCheckResult(ctxIcinga, svc, action)
+			errProcess := g.icingaClient.ProcessCheckResult(ctxIcinga, action)
 
 			if errProcess != nil {
 				g.logger.Error("Could not process-check-result for heartbeat", "component", "gc", "error", errProcess.Error())
