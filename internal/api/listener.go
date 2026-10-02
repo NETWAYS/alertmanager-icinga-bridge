@@ -279,10 +279,12 @@ func (l *Listener) manageIcingaService(ctx context.Context, payload WebhookPaylo
 
 		action := icinga2.Action{
 			ExitStatus:   exitCode,
+			Filter:       fmt.Sprintf("host.name==\"%s\" && service.name==\"%s\"", svc.HostName, svc.Name),
+			Type:         "Service",
 			PluginOutput: pluginOutput,
 		}
 
-		errProcess := l.icingaClient.ProcessCheckResult(ctxIcinga, svc, action)
+		errProcess := l.icingaClient.ProcessCheckResult(ctxIcinga, action)
 
 		if errProcess != nil {
 			return errProcess
