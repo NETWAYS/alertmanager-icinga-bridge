@@ -1,0 +1,13 @@
+apiVersion: v2
+name: alertmanager-icinga-bridge
+description: Alertmanager to Icinga2 bridge
+home: https://github.com/NETWAYS/alertmanager-icinga-bridge
+keywords:
+- prometheus
+- alertmanager
+- webhook
+- icinga2
+sources:
+- https://github.com/NETWAYS/alertmanager-icinga-bridge
+version: 1.0.0
+appVersion: "1.0.3"
