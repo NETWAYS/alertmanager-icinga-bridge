@@ -75,7 +75,7 @@ func (c *Client) Do(req *http.Request, path string) (*http.Response, error) {
 	var endpointErrors strings.Builder
 
 	for _, base := range c.IcingaURL {
-		// Since we determine what the path ist, this probably won't fail
+		// Since we determine what the path is this probably won't fail
 		req.URL, _ = req.URL.Parse(base + path)
 
 		// Reset the body for the attempt, http.Client.Do always drains/closes

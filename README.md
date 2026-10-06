@@ -303,7 +303,7 @@ This can be overridden by the following labels (unless configured otherwise):
 | Label: `icinga_use_zone: MyZone` | If present, use given zone for the new service The zone must exist beforehand |
 | Label: `icinga_use_template: MyTemplate` | If present, use given template for the new service. The template must exist beforehand |
 
-Note that this requires the Alertmanager-Icinga-Bridge user to have the necessary permissions on the host.
+Note that `icinga_use_host` requires the Alertmanager-Icinga-Bridge user to have the necessary permissions on the given host.
 
 ## Heartbeat Services
 
