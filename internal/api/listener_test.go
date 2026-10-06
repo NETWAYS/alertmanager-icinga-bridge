@@ -211,7 +211,7 @@ func TestGenerateServiceName(t *testing.T) {
 	}
 }
 
-func TestManageIcingaService(t *testing.T) {
+func TestManageIcingaResult_WithService(t *testing.T) {
 	datasetHost := "testdata/host.json"
 	datasetService := "testdata/service.json"
 
@@ -265,14 +265,84 @@ func TestManageIcingaService(t *testing.T) {
 		ExternalURL: "http://alertmanager.internal",
 		Alerts:      []Alert{alert},
 	}
-	err := l.manageIcingaService(context.Background(), payload)
+	err := l.manageIcingaResults(context.Background(), payload)
 
 	if err != nil {
 		t.Errorf("expected no error got %v", err)
 	}
 
 	actual := buf.String()
-	expected := "Managed Icinga service"
+	expected := "Using service check for process-check-result"
+
+	if !strings.Contains(actual, expected) {
+		t.Fatalf("expected %v, got %v", expected, actual)
+	}
+}
+
+func TestManageIcingaResult_WithHost(t *testing.T) {
+	datasetHost := "testdata/host.json"
+	datasetService := "testdata/service.json"
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/v1/objects/hosts/unittest":
+			w.WriteHeader(http.StatusOK)
+			w.Write(loadTestdata(datasetHost))
+		case "/v1/objects/hosts/unittest!heartbeat":
+			w.WriteHeader(http.StatusOK)
+			w.Write(loadTestdata(datasetService))
+		case "/v1/actions/process-check-result/":
+			w.WriteHeader(http.StatusOK)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+
+	defer ts.Close()
+
+	var buf bytes.Buffer
+	logger := slog.New(slog.NewTextHandler(&buf, &slog.HandlerOptions{Level: slog.LevelDebug}))
+	config := testConfig(ts.URL)
+	icingaClient := icinga2.NewClient(config, logger)
+	l := NewListener(config, logger, icingaClient)
+
+	alert := Alert{
+		Status: "firing",
+		Labels: map[string]string{
+			"alertname":             "Down",
+			"instance":              "myhost-01",
+			"icinga_use_host":       "MyHost",
+			"icinga_use_host_check": "true",
+			"severity":              "critical",
+		},
+		Annotations: map[string]string{
+			"summary":     "MyHost is down",
+			"description": "Unittest",
+		},
+		GeneratorURL: "http://prometheus.example.com/",
+		Fingerprint:  "a1b2c3d4e5f6g7h8i9j0",
+	}
+
+	payload := WebhookPayload{
+		Status:   "firing",
+		Receiver: "webhook",
+		GroupLabels: map[string]string{
+			"alertname": "HighCPUUsage",
+		},
+		CommonLabels: map[string]string{
+			"team": "ops",
+		},
+		ExternalURL: "http://alertmanager.internal",
+		Alerts:      []Alert{alert},
+	}
+	err := l.manageIcingaResults(context.Background(), payload)
+
+	if err != nil {
+		t.Errorf("expected no error got %v", err)
+	}
+
+	actual := buf.String()
+	expected := "Using host check for process-check-result"
 
 	if !strings.Contains(actual, expected) {
 		t.Fatalf("expected %v, got %v", expected, actual)

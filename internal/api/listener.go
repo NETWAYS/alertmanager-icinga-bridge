@@ -206,11 +206,11 @@ func (l *Listener) handleIncomingAlert(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	errManage := l.manageIcingaService(r.Context(), payload)
+	errManage := l.manageIcingaResults(r.Context(), payload)
 
 	if errManage != nil {
-		l.logger.Error("Could not manage Icinga service for incoming alert", "component", "listener", "error", errManage.Error())
-		http.Error(w, "Could not manage Icinga service for incoming alert", http.StatusInternalServerError)
+		l.logger.Error("Could not manage Icinga results for incoming alert", "component", "listener", "error", errManage.Error())
+		http.Error(w, "Could not manage Icinga results for incoming alert", http.StatusInternalServerError)
 
 		return
 	}
@@ -221,14 +221,15 @@ func (l *Listener) handleIncomingAlert(w http.ResponseWriter, r *http.Request) {
 	l.logger.Debug("Handled incoming alert", "component", "listener")
 }
 
-// manageIcingaService talks to the Icinga API to manage the service for the incoming alert
-func (l *Listener) manageIcingaService(ctx context.Context, payload WebhookPayload) error {
-	l.logger.Debug("Managing Icinga service", "component", "listener")
+// manageIcingaResults talks to the Icinga API to manage the results for the incoming alert
+func (l *Listener) manageIcingaResults(ctx context.Context, payload WebhookPayload) error {
+	l.logger.Debug("Managing Icinga results", "component", "listener")
 
 	ctxIcinga, cancel := context.WithTimeout(ctx, 20*time.Second)
 	defer cancel()
 
-	_, errHost := l.icingaClient.GetHost(ctxIcinga, l.config.IcingaHostname)
+	// We always check for the configured alertmanager-bridge host, since we use it as backup
+	bridgeHost, errHost := l.icingaClient.GetHost(ctxIcinga, l.config.IcingaHostname)
 
 	if errHost != nil {
 		return errHost
@@ -243,55 +244,82 @@ func (l *Listener) manageIcingaService(ctx context.Context, payload WebhookPaylo
 			l.logger.Warn("alert does not have label 'alertname'", "alert", alert)
 		}
 
-		serviceName := generateServiceName(l.config.ID, alert, l.fingerprintExcludes)
+		// Do we use a host check result for this alert or not
+		useHostCheck := false
+		// The default host is the alertmanager-bridge host as default
+		hostName := bridgeHost.Name
+		// When a different hostname is used then we check for the icinga_use_host_check label
+		if value := l.hostNameGetter.GetField(&alert, 0); value != "" {
+			hostName = value
 
-		if !l.serviceNameValidator.MatchString(serviceName) {
-			return fmt.Errorf("service name '%v' does not match Icinga constraints", serviceName)
+			useHostCheckLabelValue, ok := alert.Labels["icinga_use_host_check"]
+
+			if ok && useHostCheckLabelValue == "true" {
+				// This alert will be attached to a host check result
+				useHostCheck = true
+			}
 		}
 
-		if l.config.DisplayNameAsServiceName {
-			displayName = serviceName
-		}
-
+		// Get the exitcode of the alert
 		exitCode := severityToExitCode(alert.Status, alert.Labels["severity"], l.severityLevels)
-
-		svc, errUpsert := l.updateOrCreateService(ctxIcinga, serviceName, displayName, exitCode, alert)
-
-		if errUpsert != nil {
-			return errUpsert
-		}
-
-		// If we got an empty service object, the service was not
-		// created, don't try to call process-check-result
-		if svc.Name == "" {
-			l.logger.Warn("Got empty service object for alert: " + displayName)
-
-			continue
-		}
 
 		// Get the Plugin Output from the first Annotation we find that has some data
 		pluginOutput := l.pluginOutputGetter.GetField(&alert, exitCode)
 
-		// heartbeat alerts will use exit code OK since they always fire and the active check will set it to not OK
-		if _, ok := alert.Labels["heartbeat"]; ok {
-			exitCode = icinga2.ExitStatusOK
-		}
-
-		action := icinga2.Action{
+		icingaAction := icinga2.Action{
 			ExitStatus:   exitCode,
-			Filter:       fmt.Sprintf("host.name==\"%s\" && service.name==\"%s\"", svc.HostName, svc.Name),
-			Type:         "Service",
 			PluginOutput: pluginOutput,
 		}
 
-		errProcess := l.icingaClient.ProcessCheckResult(ctxIcinga, action)
+		if useHostCheck { // nolint: nestif
+			l.logger.Debug("Using host check for process-check-result", "component", "listener", "alert", alert)
+
+			icingaAction.Filter = fmt.Sprintf("host.name==\"%s\"", hostName)
+			icingaAction.Type = "Host"
+		} else {
+			l.logger.Debug("Using service check for process-check-result", "component", "listener", "alert", alert)
+
+			serviceName := generateServiceName(l.config.ID, alert, l.fingerprintExcludes)
+
+			if !l.serviceNameValidator.MatchString(serviceName) {
+				return fmt.Errorf("service name '%v' does not match Icinga constraints", serviceName)
+			}
+
+			if l.config.DisplayNameAsServiceName {
+				displayName = serviceName
+			}
+
+			svc, errUpsert := l.updateOrCreateService(ctxIcinga, serviceName, displayName, exitCode, alert)
+
+			if errUpsert != nil {
+				return errUpsert
+			}
+
+			// If we got an empty service object, the service was not
+			// created, don't try to call process-check-result
+			if svc.Name == "" {
+				l.logger.Warn("Got empty service object for alert: " + displayName)
+
+				continue
+			}
+
+			// heartbeat alerts will use exit code OK since they always fire and the active check will set it to not OK
+			if _, ok := alert.Labels["heartbeat"]; ok {
+				icingaAction.ExitStatus = icinga2.ExitStatusOK
+			}
+
+			icingaAction.Filter = fmt.Sprintf("host.name==\"%s\" && service.name==\"%s\"", svc.HostName, svc.Name)
+			icingaAction.Type = "Service"
+		}
+
+		errProcess := l.icingaClient.ProcessCheckResult(ctxIcinga, icingaAction)
 
 		if errProcess != nil {
 			return errProcess
 		}
 	}
 
-	l.logger.Debug("Managed Icinga service", "component", "listener")
+	l.logger.Debug("Managed Icinga results", "component", "listener")
 
 	return nil
 }
