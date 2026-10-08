@@ -1,0 +1,11 @@
+{
+  "results": [
+    {
+      "code": 403,
+      "status": "User is not allowed to access the requested host object.",
+      "errors": [
+        "User permission does not grant access to this resource"
+      ]
+    }
+  ]
+}
