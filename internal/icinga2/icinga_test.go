@@ -6,11 +6,13 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
@@ -45,6 +47,19 @@ func jsonEqual(a, b any) bool {
 	ba, _ := json.Marshal(a)
 	bb, _ := json.Marshal(b)
 	return string(ba) == string(bb)
+}
+
+func httpOperationError(w http.ResponseWriter, error string, code int) {
+	status := OperationStatus{
+		Code:   code,
+		Status: error,
+	}
+	data := OperationResults{
+		Results: []OperationStatus{status},
+	}
+
+	w.WriteHeader(code)
+	json.NewEncoder(w).Encode(&data)
 }
 
 func TestServiceFullName(t *testing.T) {
@@ -115,6 +130,14 @@ func TestGetHost(t *testing.T) {
 			expectedErr: ErrNotFound,
 			expected:    Host{},
 		},
+		"unauthorized": {
+			server: httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusUnauthorized)
+				w.Write([]byte(`<h1>Unauthorized. Please check your user credentials.</h1>`))
+			})),
+			expectedErr: errors.New(`could not unmarshal JSON: invalid character '<' looking for beginning of value`),
+			expected:    Host{},
+		},
 	}
 
 	for name, test := range tests {
@@ -125,8 +148,16 @@ func TestGetHost(t *testing.T) {
 
 			actual, err := client.GetHost(context.Background(), "unittest")
 
-			if err != test.expectedErr {
-				t.Fatalf("expected:\n %s \ngot:\n %s", prettyPrint(test.expectedErr), prettyPrint(err))
+			if test.expectedErr == nil {
+				if err != nil {
+					t.Fatalf("GetHost yielded error despite not expecting one: %s", err)
+				}
+			} else if err == nil {
+				if test.expectedErr != nil {
+					t.Fatalf("GetHost yielded no error despite expecting one")
+				}
+			} else if test.expectedErr.Error() != err.Error() {
+				t.Fatalf("GetHost error mismatch. want:\n %s \ngot:\n %s", test.expectedErr, err)
 			}
 
 			if !reflect.DeepEqual(actual, test.expected) {
@@ -180,6 +211,14 @@ func TestGetService(t *testing.T) {
 			expectedErr: ErrNotFound,
 			expected:    Service{},
 		},
+		"unauthorized": {
+			server: httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusUnauthorized)
+				w.Write([]byte(`<h1>Unauthorized. Please check your user credentials.</h1>`))
+			})),
+			expectedErr: errors.New(`could not unmarshal JSON: invalid character '<' looking for beginning of value`),
+			expected:    Service{},
+		},
 	}
 
 	for name, test := range tests {
@@ -190,12 +229,147 @@ func TestGetService(t *testing.T) {
 
 			actual, err := client.GetService(context.Background(), "heartbeat")
 
-			if err != test.expectedErr {
-				t.Fatalf("expected err:\n %s \ngot:\n %s", test.expectedErr, err)
+			if test.expectedErr == nil {
+				if err != nil {
+					t.Fatalf("GetService yielded error despite not expecting one: %s", err)
+				}
+			} else if err == nil {
+				if test.expectedErr != nil {
+					t.Fatalf("GetService yielded no error despite expecting one")
+				}
+			} else if test.expectedErr.Error() != err.Error() {
+				t.Fatalf("GetService error mismatch. want:\n %s \ngot:\n %s", test.expectedErr, err)
 			}
 
 			if prettyPrint(test.expected) != prettyPrint(actual) {
 				t.Fatalf("expected:\n %s \ngot:\n %s", prettyPrint(test.expected), prettyPrint(actual))
+			}
+		})
+	}
+}
+
+func TestProcessCheckResult(t *testing.T) {
+	testCases := map[string]struct {
+		haveAction Action
+		wantErr    error
+	}{
+		"success": {
+			haveAction: Action{
+				ExitStatus: http.StatusOK,
+				Filter:     "success",
+			},
+		},
+		"simple operation error": {
+			haveAction: Action{
+				ExitStatus: http.StatusBadRequest,
+				Filter:     "host-exit-code",
+			},
+			wantErr: errors.New("Invalid 'exit_status' for Host icinga2-master1.localdomain."),
+		},
+		"detailed operation error": {
+			haveAction: Action{
+				ExitStatus: http.StatusForbidden,
+				Filter:     "forbidden",
+			},
+			wantErr: errors.New("User is not allowed to access the requested host object.\nUser permission does not grant access to this resource"),
+		},
+		"invalid JSON response": {
+			haveAction: Action{
+				ExitStatus: http.StatusBadRequest,
+				Filter:     "malformed",
+			},
+			wantErr: errors.New("Unable to parse API error response: invalid character '}' looking for beginning of value"),
+		},
+		"unauthorized access": {
+			haveAction: Action{
+				ExitStatus: http.StatusUnauthorized,
+			},
+			wantErr: errors.New("<h1>Unauthorized. Please check your user credentials.</h1>\n"),
+		},
+		"not reachable": {
+			haveAction: Action{
+				ExitStatus: http.StatusServiceUnavailable,
+			},
+			wantErr: ErrNoEndpointReachable,
+		},
+		"not found": {
+			haveAction: Action{
+				ExitStatus: http.StatusNotFound,
+				Filter:     "not-found",
+			},
+			wantErr: ErrNotFound,
+		},
+	}
+	handler := func(w http.ResponseWriter, r *http.Request) {
+		data, err := io.ReadAll(r.Body)
+		if err != nil {
+			httpOperationError(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		result := new(Action)
+		err = json.Unmarshal(data, result)
+		if err != nil {
+			httpOperationError(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		if result.ExitStatus == 0 {
+			httpOperationError(w, "Invalid 'exit_status'", http.StatusBadRequest)
+			return
+		} else if result.ExitStatus == http.StatusUnauthorized {
+			// simulate the error response Icinga2 uses for authentication issues
+			http.Error(w, "<h1>Unauthorized. Please check your user credentials.</h1>", http.StatusUnauthorized)
+			return
+		} else if result.ExitStatus == http.StatusServiceUnavailable {
+			http.Error(w, "Service unavailable", http.StatusServiceUnavailable)
+			return
+		}
+
+		name := result.Filter + ".json"
+		fixture := filepath.Join("testdata", "process-check-result", name)
+		file, err := os.Open(fixture)
+		if err != nil {
+			if errors.Is(err, os.ErrNotExist) {
+				http.NotFound(w, r)
+			} else {
+				httpOperationError(w, err.Error(), http.StatusInternalServerError)
+			}
+
+			return
+		}
+
+		defer file.Close()
+
+		stat, err := file.Stat()
+		if err != nil {
+			httpOperationError(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.WriteHeader(int(result.ExitStatus))
+		http.ServeContent(w, r, name, stat.ModTime(), file)
+	}
+
+	for testName, testCase := range testCases {
+		t.Run(testName, func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(handler))
+			client := NewClient(testConfig(srv.URL), testLogger())
+			defer srv.Close()
+
+			got := client.ProcessCheckResult(context.Background(), testCase.haveAction)
+			if testCase.wantErr == nil {
+				if got != nil {
+					t.Fatalf("ProcessCheckResult yielded error despite not expecting one: %s", got)
+				}
+			} else if got == nil {
+				if testCase.wantErr != nil {
+					t.Fatalf("ProcessCheckResult yielded no error despite expecting one")
+				}
+			} else if testCase.wantErr.Error() != got.Error() {
+				if !errors.Is(got, testCase.wantErr) { // got might wrap several errors and wantErr might be one of them
+					t.Fatalf("ProcessCheckResult error mismatch. want:\n %s \ngot:\n %s", testCase.wantErr, got)
+				}
 			}
 		})
 	}

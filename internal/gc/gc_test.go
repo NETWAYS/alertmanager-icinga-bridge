@@ -5,6 +5,7 @@ package gc
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
@@ -27,12 +28,20 @@ func testConfig(url string) *config.Config {
 
 func testServerForDelete() *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var status icinga2.OperationStatus
+
 		switch r.URL.Path {
-		case "/v1/objects/service/unittest!svc":
-			w.WriteHeader(http.StatusOK)
+		case "/v1/objects/services/unittest!svc":
+			status = icinga2.NewSimpleOperationStatus(http.StatusOK, "Object was removed.")
 		default:
-			http.NotFound(w, r)
+			status = icinga2.NewSimpleOperationStatus(http.StatusNotFound, "No objects found.")
 		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(status.Code)
+
+		response := icinga2.NewOperationResults(status)
+		_ = json.NewEncoder(w).Encode(response)
 	}))
 }
 
