@@ -1,0 +1,8 @@
+{
+  "results": [
+    {
+      "code": 400,
+      "status": "Invalid 'exit_status' for Host icinga2-master1.localdomain."
+    }
+  ]
+}

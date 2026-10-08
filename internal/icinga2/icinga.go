@@ -139,10 +139,13 @@ func (c *Client) ProcessCheckResult(ctx context.Context, action Action) error {
 		return errDo
 	}
 
-	defer closeBody(res)
-
 	if res.StatusCode == http.StatusNotFound {
+		closeBody(res)
 		return ErrNotFound
+	} else if res.StatusCode > 299 {
+		return parseAPIError(res.Body)
+	} else {
+		closeBody(res)
 	}
 
 	c.logger.Debug("Processed CheckResult at Icinga API", "component", "icinga")
@@ -326,7 +329,11 @@ func (c *Client) CreateService(ctx context.Context, service Service) error {
 		return errDo
 	}
 
-	defer closeBody(res)
+	if res.StatusCode > 299 {
+		return parseAPIError(res.Body)
+	} else {
+		closeBody(res)
+	}
 
 	c.logger.Debug("Created service at Icinga API", "component", "icinga")
 
@@ -359,7 +366,11 @@ func (c *Client) UpdateService(ctx context.Context, service Service) error {
 		return errDo
 	}
 
-	defer closeBody(res)
+	if res.StatusCode > 299 {
+		return parseAPIError(res.Body)
+	} else {
+		closeBody(res)
+	}
 
 	c.logger.Debug("Updated service at Icinga API", "component", "icinga")
 
@@ -390,11 +401,35 @@ func (c *Client) DeleteService(ctx context.Context, name string) error {
 		return errDo
 	}
 
-	defer closeBody(res)
+	if res.StatusCode > 299 {
+		return parseAPIError(res.Body)
+	} else {
+		closeBody(res)
+	}
 
 	c.logger.Debug("Deleted service at Icinga API", "component", "icinga")
 
 	return nil
+}
+
+// parseAPIError parses the data from the provided reader as API error.
+// if that fails, the parsing error is returned. if the response does
+// not represent an error, nil is returned. otherwise the API error(s)
+// are returned, wrapped in a single error object.
+func parseAPIError(r io.ReadCloser) error {
+	data, err := io.ReadAll(r)
+	_ = r.Close()
+	if err != nil {
+		return fmt.Errorf("Unable to read data from API response: %w", err)
+	}
+
+	result := new(OperationResults)
+	err = json.Unmarshal(data, result)
+	if err != nil {
+		return fmt.Errorf("Unable to parse API error response: %w", err)
+	}
+
+	return result.NewError()
 }
 
 // closeBody ensures the body is read and then closed.

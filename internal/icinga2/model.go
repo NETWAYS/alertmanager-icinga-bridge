@@ -4,6 +4,7 @@ package icinga2
 
 import (
 	"encoding/json"
+	"errors"
 	"strconv"
 	"strings"
 )
@@ -191,6 +192,57 @@ type ServiceResults struct {
 type ServiceCreate struct {
 	Templates []string `json:"templates"`
 	Attrs     Service  `json:"attrs"`
+}
+
+// OperationResults is a generic container for operations which
+// do not respond with logic-specific information but rather
+// generic result summaries; e.g. successful or failed.
+type OperationResults struct {
+	Results []OperationStatus `json:"results"`
+}
+
+// NewError uses [errors.Join] to create a single wrapped
+// error containing all erronous results using
+// [OperationStatus.NewError]. If none of the results
+// represents an error, nil is returned.
+func (r *OperationResults) NewError() error {
+	errs := make([]error, 0, len(r.Results))
+	for _, s := range r.Results {
+		errs = append(errs, s.NewError())
+	}
+
+	return errors.Join(errs...)
+}
+
+// OperationStatus is the summary of an API operation,
+// be it successful or not. In case of errors, additional
+// information might be available.
+type OperationStatus struct {
+	Code   int      `json:"code,omitempty"`
+	Errors []string `json:"errors,omitempty"`
+	Status string   `json:"status,omitempty"`
+}
+
+// NewError uses [errors.Join] to create a single wrapped
+// error containing the status and any additional information,
+// unless the status is not considered an error, in which case
+// this function returns nil.
+func (s *OperationStatus) NewError() error {
+	if s.Code < 300 {
+		return nil
+	}
+
+	if len(s.Errors) == 0 {
+		return errors.New(s.Status)
+	}
+
+	errs := make([]error, 0, 1+len(s.Errors))
+	errs = append(errs, errors.New(s.Status))
+	for _, msg := range s.Errors {
+		errs = append(errs, errors.New(msg))
+	}
+
+	return errors.Join(errs...)
 }
 
 func flatten(m map[string]any) map[string]any {

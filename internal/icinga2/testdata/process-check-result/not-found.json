@@ -1,0 +1,8 @@
+{
+  "results": [
+    {
+      "code": 404,
+      "status": "No such host object 'icinga2-master2.localdomain'."
+    }
+  ]
+}
