@@ -8,7 +8,6 @@ VERSION?=latest
 build-image:
 	$(CONTAINER_RUNTIME) build --pull \
         --build-arg BRIDGE_VERSION=$(VERSION) \
-        --build-arg BRIDGE_COMMIT=$(COMMIT) \
         -t ghcr.io/netways/alertmanager-icinga-bridge:latest .
 build:
 	mkdir -p dist; \

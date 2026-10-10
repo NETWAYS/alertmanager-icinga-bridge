@@ -3,23 +3,24 @@
 # Build Image
 FROM docker.io/golang:1.27-trixie AS builder
 
-ARG BRIDGE_VERSION=development
-ARG BRIDGE_COMMIT=HEAD
-
-ENV CGO_ENABLED=0
-
 WORKDIR /go/src/app
-COPY . .
 
+COPY go.mod go.sum ./
+RUN set -xe; \
+    go mod download
+
+ARG BRIDGE_VERSION=development
+
+COPY . .
 RUN set -ex; \
-    go build -ldflags="-s -w -X main.version=${BRIDGE_VERSION} -X main.commit=${BRIDGE_COMMIT}" -o /go/bin/alertmanager-icinga-bridge
+    make release "VERSION=${BRIDGE_VERSION}"
 
 # Final Image
 FROM gcr.io/distroless/static-debian13:nonroot
 
 WORKDIR /
 
-COPY --from=builder /go/bin/alertmanager-icinga-bridge /
+COPY --from=builder /go/src/app/dist/ /
 
 EXPOSE 8888
 
