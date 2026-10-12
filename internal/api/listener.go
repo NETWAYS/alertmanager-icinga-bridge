@@ -274,7 +274,7 @@ func (l *Listener) manageIcingaResults(ctx context.Context, payload WebhookPaylo
 		if useHostCheck { // nolint: nestif
 			l.logger.Debug("Using host check for process-check-result", "component", "listener", "alert", alert)
 
-			icingaAction.Filter = fmt.Sprintf("host.name==\"%s\"", hostName)
+			icingaAction.Filter = fmt.Sprintf("host.name==%q", hostName)
 			icingaAction.Type = "Host"
 		} else {
 			l.logger.Debug("Using service check for process-check-result", "component", "listener", "alert", alert)
