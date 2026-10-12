@@ -500,22 +500,26 @@ func TestSeverityToExitCode(t *testing.T) {
 		name     string
 		status   string
 		severity string
+		isHost   bool
 		want     icinga2.ExitStatus
 	}{
-		{"firing-critical", "firing", "critical", icinga2.ExitStatusCritical},
-		{"firing-warning", "firing", "warning", icinga2.ExitStatusWarning},
-		{"firing-info", "firing", "info", icinga2.ExitStatusOK},
-		{"firing-unknown-severity", "firing", "unknown", icinga2.ExitStatusUnknown},
-		{"firing-mixed-case", "firing", "CrItIcAl", icinga2.ExitStatusCritical},
-		{"resolved-any-severity", "resolved", "critical", icinga2.ExitStatusOK},
-		{"resolved-empty-severity", "resolved", "", icinga2.ExitStatusOK},
-		{"other-status", "pending", "critical", icinga2.ExitStatusUnknown},
-		{"empty-status", "", "critical", icinga2.ExitStatusUnknown},
+		{"firing-critical", "firing", "critical", false, icinga2.ExitStatusCritical},
+		{"firing-warning", "firing", "warning", false, icinga2.ExitStatusWarning},
+		{"firing-info", "firing", "info", false, icinga2.ExitStatusOK},
+		{"firing-unknown-severity", "firing", "unknown", false, icinga2.ExitStatusUnknown},
+		{"firing-mixed-case", "firing", "CrItIcAl", false, icinga2.ExitStatusCritical},
+		{"resolved-any-severity", "resolved", "critical", false, icinga2.ExitStatusOK},
+		{"resolved-empty-severity", "resolved", "", false, icinga2.ExitStatusOK},
+		{"other-status", "pending", "critical", false, icinga2.ExitStatusUnknown},
+		{"empty-status", "", "critical", false, icinga2.ExitStatusUnknown},
+		{"host-firing-down", "firing", "warning", true, icinga2.ExitStatusWarning},
+		{"host-resolved-up", "resolved", "warning", true, icinga2.ExitStatusOK},
+		{"host-firing-empty-status", "", "warning", true, icinga2.ExitStatusWarning},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := severityToExitCode(tt.status, tt.severity, severityLevels); got != tt.want {
+			if got := severityToExitCode(tt.status, tt.severity, severityLevels, tt.isHost); got != tt.want {
 				t.Errorf("severityToExitCode(%q, %q) = %d, want %d",
 					tt.status, tt.severity, got, tt.want)
 			}

@@ -260,7 +260,7 @@ func (l *Listener) manageIcingaResults(ctx context.Context, payload WebhookPaylo
 		}
 
 		// Get the exitcode of the alert
-		exitCode := severityToExitCode(alert.Status, alert.Labels["severity"], l.severityLevels)
+		exitCode := severityToExitCode(alert.Status, alert.Labels["severity"], l.severityLevels, useHostCheck)
 
 		// Get the Plugin Output from the first Annotation we find that has some data
 		pluginOutput := l.pluginOutputGetter.GetField(&alert, exitCode)
@@ -479,7 +479,20 @@ func mapToStableString(data map[string]string, excludes map[string]struct{}) str
 
 // severityToExitStatus computes an exit code which Icinga understands from
 // an alert's status and severity label
-func severityToExitCode(status string, severity string, severityLevels map[string]int) icinga2.ExitStatus {
+func severityToExitCode(status string, severity string, severityLevels map[string]int, isHostCheck bool) icinga2.ExitStatus {
+	// If it's a host check we only map firing to "down (1)" and resolved to "up (0)".
+	// We're reusing the Warning/OK semantic here to keep things simple for now
+	if isHostCheck {
+		switch status {
+		case alertStatusFiring:
+			return icinga2.ExitStatusWarning
+		case alertStatusResolved:
+			return icinga2.ExitStatusOK
+		default:
+			return icinga2.ExitStatusWarning
+		}
+	}
+	// Services are mapped depending on severity labels when the alert is firing
 	switch status {
 	case alertStatusFiring:
 		code, ok := severityLevels[strings.ToLower(severity)]
