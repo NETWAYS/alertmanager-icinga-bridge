@@ -256,7 +256,7 @@ func (l *Listener) manageIcingaResults(ctx context.Context, payload WebhookPaylo
 
 			if ok && useHostCheckLabelValue == "true" {
 				// This alert will be attached to a host check result
-				useHostCheck = true
+				useHostCheck, _ = strconv.ParseBool(useHostCheckLabelValue)
 			}
 		}
 
