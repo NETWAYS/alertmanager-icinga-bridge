@@ -113,6 +113,7 @@ type CLI struct {
 	Templates            []string `kong:"default='generic-service',env='ALERTMANAGER_ICINGA_BRIDGE_SERVICE_TEMPLATE',help='Create Icinga services with the given template (can be repeated)'"`
 
 	IcingaHostObjectLabels   []string `kong:"default='icinga_use_host',env='ALERTMANAGER_BRIDGE_ICINGA_HOST_OBJECT_LABELS',help='List of Labels depicting the Icinga Host object to associate the alert service with (uses --icinga-hostname if no label is found on alerts)'"`
+	IcingaHostCheckLabels    []string `kong:"default='icinga_use_host_check',env='ALERTMANAGER_BRIDGE_ICINGA_HOST_CHECK_LABELS',help='List of Labels to be used to associate the incoming alert with the Icinga Host object instead of a Service object'"`
 	IcingaHostZoneLabels     []string `kong:"default='icinga_use_zone',env='ALERTMANAGER_BRIDGE_ICINGA_HOST_ZONE_LABELS',help='List of Labels to be used to set the zone attribute of the Icinga service object'"`
 	IcingaHostTemplateLabels []string `kong:"default='icinga_use_template',env='ALERTMANAGER_BRIDGE_ICINGA_HOST_TEMPLATE_LABELS',help='List of Labels to be used to set the included template for the Icinga service object (in addition to --templates)'"`
 	PluginOutputAnnotations  []string `kong:"default='message',env='ALERTMANAGER_ICINGA_BRIDGE_PLUGINOUTPUT_ANNOTATIONS',help='List of Annotation names to be used to set the plugin output for the Icinga service'"`

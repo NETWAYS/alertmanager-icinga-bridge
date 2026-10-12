@@ -48,6 +48,7 @@ type Listener struct {
 	notesURLGetter       AlertFieldGetter
 	pluginOutputGetter   AlertFieldGetter
 	hostNameGetter       AlertFieldGetter
+	hostCheckGetter      AlertFieldGetter
 	zoneGetter           AlertFieldGetter
 	templatesGetter      AlertFieldGetter
 }
@@ -62,6 +63,7 @@ func NewListener(config *config.Config, logger *slog.Logger, icingaClient *icing
 		notesTextGetter:      AnnotationsGetter(config.NotesTextAnnotations),
 		notesURLGetter:       AnnotationsGetter(config.NotesURLAnnotations),
 		hostNameGetter:       LabelsGetter(config.IcingaHostObjectLabels),
+		hostCheckGetter:      LabelsGetter(config.IcingaHostCheckLabels),
 		zoneGetter:           LabelsGetter(config.IcingaHostZoneLabels),
 		templatesGetter:      LabelsGetter(config.IcingaHostTemplateLabels),
 	}
@@ -252,12 +254,9 @@ func (l *Listener) manageIcingaResults(ctx context.Context, payload WebhookPaylo
 		if value := l.hostNameGetter.GetField(&alert, 0); value != "" {
 			hostName = value
 
-			useHostCheckLabelValue, ok := alert.Labels["icinga_use_host_check"]
-
-			if ok && useHostCheckLabelValue == "true" {
-				// This alert will be attached to a host check result
-				useHostCheck, _ = strconv.ParseBool(useHostCheckLabelValue)
-			}
+			useHostCheckLabelValue := l.hostCheckGetter.GetField(&alert, 0)
+			// This alert will be attached to a host check result
+			useHostCheck, _ = strconv.ParseBool(useHostCheckLabelValue)
 		}
 
 		// Get the exitcode of the alert

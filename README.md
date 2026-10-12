@@ -89,6 +89,7 @@ Flags:
 --max-check-attempts=1                                    The maximum number of checks which are executed before changing to a hard state ($ALERTMANAGER_ICINGA_BRIDGE_SERVICE_MAX_CHECK_ATTEMPTS)
 --templates=generic-service,...                           Create Icinga services with the given template (can be repeated) ($ALERTMANAGER_ICINGA_BRIDGE_SERVICE_TEMPLATE)
 --icinga-host-object-labels=icinga_use_host,...           List of Labels depicting the Icinga Host object to associate the alert service with (uses --icinga-hostname if no label is found on alerts) ($ALERTMANAGER_BRIDGE_ICINGA_HOST_OBJECT_LABELS)
+--icinga-host-check-labels=icinga_use_host_check,...      List of Labels to be used to associate the incoming alert with the Icinga Host object instead of a Service object ($ALERTMANAGER_BRIDGE_ICINGA_HOST_CHECK_LABELS)
 --icinga-host-zone-labels=icinga_use_zone,...             List of Labels to be used to set the zone attribute of the Icinga service object ($ALERTMANAGER_BRIDGE_ICINGA_HOST_ZONE_LABELS)
 --icinga-host-template-labels=icinga_use_template,...     List of Labels to be used to set the included template for the Icinga service object (in addition to --templates) ($ALERTMANAGER_BRIDGE_ICINGA_HOST_TEMPLATE_LABELS)
 --plugin-output-annotations=message,...                   List of Annotation names to be used to set the plugin output for the Icinga service ($ALERTMANAGER_ICINGA_BRIDGE_PLUGINOUTPUT_ANNOTATIONS)
