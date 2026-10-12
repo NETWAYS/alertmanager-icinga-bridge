@@ -308,7 +308,7 @@ func (l *Listener) manageIcingaResults(ctx context.Context, payload WebhookPaylo
 				icingaAction.ExitStatus = icinga2.ExitStatusOK
 			}
 
-			icingaAction.Filter = fmt.Sprintf("host.name==\"%s\" && service.name==\"%s\"", svc.HostName, svc.Name)
+			icingaAction.Filter = fmt.Sprintf("host.name==%q && service.name==%q", svc.HostName, svc.Name)
 			icingaAction.Type = "Service"
 		}
 
