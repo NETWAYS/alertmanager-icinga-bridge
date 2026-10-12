@@ -35,6 +35,7 @@ func testConfig(url string) *config.Config {
 		IcingaHostname:           "unittest",
 		PluginOutputAnnotations:  []string{"message"},
 		IcingaHostObjectLabels:   []string{"icinga_use_host"},
+		IcingaHostCheckLabels:    []string{"icinga_use_host_check"},
 		IcingaHostZoneLabels:     []string{"icinga_use_zone"},
 		IcingaHostTemplateLabels: []string{"icinga_use_template"},
 		NotesTextAnnotations:     []string{"description"},
