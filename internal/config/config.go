@@ -37,6 +37,7 @@ type Config struct {
 
 	PluginOutputAnnotations  []string
 	IcingaHostObjectLabels   []string
+	IcingaHostCheckLabels    []string
 	IcingaHostZoneLabels     []string
 	IcingaHostTemplateLabels []string
 	NotesTextAnnotations     []string
@@ -75,6 +76,7 @@ func NewConfigFromCLI(cli *CLI) (*Config, error) {
 		PluginOutputByStates:     cli.PluginOutputByStates,
 		PluginOutputAnnotations:  cli.PluginOutputAnnotations,
 		IcingaHostObjectLabels:   cli.IcingaHostObjectLabels,
+		IcingaHostCheckLabels:    cli.IcingaHostCheckLabels,
 		IcingaHostZoneLabels:     cli.IcingaHostZoneLabels,
 		IcingaHostTemplateLabels: cli.IcingaHostTemplateLabels,
 		NotesTextAnnotations:     cli.NotesTextAnnotations,

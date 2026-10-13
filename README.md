@@ -89,6 +89,7 @@ Flags:
 --max-check-attempts=1                                    The maximum number of checks which are executed before changing to a hard state ($ALERTMANAGER_ICINGA_BRIDGE_SERVICE_MAX_CHECK_ATTEMPTS)
 --templates=generic-service,...                           Create Icinga services with the given template (can be repeated) ($ALERTMANAGER_ICINGA_BRIDGE_SERVICE_TEMPLATE)
 --icinga-host-object-labels=icinga_use_host,...           List of Labels depicting the Icinga Host object to associate the alert service with (uses --icinga-hostname if no label is found on alerts) ($ALERTMANAGER_BRIDGE_ICINGA_HOST_OBJECT_LABELS)
+--icinga-host-check-labels=icinga_use_host_check,...      List of Labels to be used to associate the incoming alert with the Icinga Host object instead of a Service object ($ALERTMANAGER_BRIDGE_ICINGA_HOST_CHECK_LABELS)
 --icinga-host-zone-labels=icinga_use_zone,...             List of Labels to be used to set the zone attribute of the Icinga service object ($ALERTMANAGER_BRIDGE_ICINGA_HOST_ZONE_LABELS)
 --icinga-host-template-labels=icinga_use_template,...     List of Labels to be used to set the included template for the Icinga service object (in addition to --templates) ($ALERTMANAGER_BRIDGE_ICINGA_HOST_TEMPLATE_LABELS)
 --plugin-output-annotations=message,...                   List of Annotation names to be used to set the plugin output for the Icinga service ($ALERTMANAGER_ICINGA_BRIDGE_PLUGINOUTPUT_ANNOTATIONS)
@@ -299,10 +300,12 @@ This can be overridden by the following labels (unless configured otherwise):
 | Alert      | Icinga      |
 | ---------- | ----------- |
 | Label: `icinga_use_host: MyHost` | If present, use given host for the new service. The host must exist beforehand |
+| Label: `icinga_use_host_check: "true"` | If this and `icinga_use_host` are present, set the host check result for the given host |
 | Label: `icinga_use_zone: MyZone` | If present, use given zone for the new service The zone must exist beforehand |
 | Label: `icinga_use_template: MyTemplate` | If present, use given template for the new service. The template must exist beforehand |
 
-Note that this requires the Alertmanager-Icinga-Bridge user to have the necessary permissions on the host.
+Note that, `icinga_use_host` requires the Alertmanager-Icinga-Bridge user to have the necessary permissions on the given host.
+The `icinga_use_host_check` will map "firing" alerts to the Icinga Host state "down" and "resolved" to "up".
 
 ## Heartbeat Services
 
