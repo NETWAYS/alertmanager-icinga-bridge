@@ -11,3 +11,13 @@ updates:
   directory: "/"
   schedule:
     interval: monthly
+
+- package-ecosystem: docker
+  directory: "/"
+  schedule:
+    interval: weekly
+
+- package-ecosystem: docker-compose
+  directory: testdata
+  schedule:
+    interval: monthly
