@@ -1,0 +1,8 @@
+{
+  "results": [
+    {
+      "code": 200,
+      "status": "Successfully processed check result for object 'icinga2-master1.localdomain!passive-ping'."
+    }
+  ]
+}
