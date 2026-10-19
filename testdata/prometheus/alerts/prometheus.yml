@@ -19,4 +19,42 @@ groups:
           description: >-
             Requests against the discovery endpoint {{ $labels.handler }}
             are higher than the expected average.
-          runbook_url: https://runbooks.example.com/prometheus/{{ $labels.alertname }}
+          runbook_url: https://runbooks.example.com/prometheus/PrometheusDiscoveryHighRequestRate
+      - alert: Watchdog
+        expr: vector(1)
+        for: 0m
+        labels:
+          # alertmanager-icinga-bridge will treat this as an unknown severity,
+          # causing the Icinga service to flip into UNKNOWN once the heartbeat
+          # stops
+          severity: none
+          # alertmanager re-sends alerts every 2 minutes and waits another minute
+          # to group alerts in batches; use that value as heartbeat baseline
+          heartbeat: "3m"
+        annotations:
+          message: DeadMansSwitch to ensure the alerting pipeline is fully operational.
+          description: >-
+            This is an alert meant to ensure that the entire alerting pipeline is functional.
+            This alert is always firing, therefore it should always be firing in Alertmanager
+            and always fire against a receiver.
+          runbook_url: https://runbooks.example.com/prometheus/Watchdog
+  - name: Alertmanager
+    rules:
+      - alert: AlertmanagerUp
+        # this expression does not represent an actual availability check
+        # it simply serves as an easy trigger for alerts:
+        # visit the status endpoint in the Alertmanager Web UI to trigger the alert
+        # (/#/status); refresh the page to cause the alert to resolve
+        expr: >-
+          alertmanager_http_request_duration_seconds_count{handler="/api/v2/status"} % 2 == 1
+        for: 0m
+        labels:
+          severity: critical
+          icinga_use_host: alertmanager.localhost
+          icinga_use_host_check: "true"
+        annotations:
+          message: Status endpoint {{ $labels.handler }} is in a degraded state
+          description: >-
+            Health information from the API endpoint {{ $labels.handler }} suggest
+            the application is not working properly.
+          runbook_url: https://runbooks.example.com/alertmanager/AlertmanagerUp

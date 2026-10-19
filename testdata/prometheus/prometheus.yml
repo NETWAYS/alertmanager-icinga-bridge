@@ -12,6 +12,10 @@ scrape_configs:
     static_configs:
       - targets:
           - 127.0.0.1:9090
+  - job_name: Alertmanager
+    static_configs:
+      - targets:
+          - alertmanager:9093
 
 alerting:
   alertmanagers:

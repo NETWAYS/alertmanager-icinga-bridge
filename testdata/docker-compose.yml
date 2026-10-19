@@ -47,7 +47,9 @@ services:
       - bridge
   bridge:
     restart: unless-stopped
-    image: ghcr.io/netways/alertmanager-icinga-bridge:1.0.3
+    image: ghcr.io/netways/alertmanager-icinga-bridge:unstable
+    build:
+      context: ..
     env_file:
       - ./bridge/config.env
     depends_on:
