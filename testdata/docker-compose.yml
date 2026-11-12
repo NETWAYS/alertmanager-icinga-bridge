@@ -56,7 +56,7 @@ services:
       - icinga
   icinga:
     restart: unless-stopped
-    image: docker.io/icinga/icinga2:2.15.6
+    image: docker.io/icinga/icinga2:2.16.6
     volumes:
       - type: bind
         source: ./icinga/objects
