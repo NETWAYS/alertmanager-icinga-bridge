@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 # Build Image
-FROM docker.io/golang:latest as builder
+FROM docker.io/golang:1.26-trixie AS builder
 
 ARG BRIDGE_VERSION=development
 ARG BRIDGE_COMMIT=HEAD
@@ -15,7 +15,7 @@ RUN set -ex; \
     go build -ldflags="-s -w -X main.version=${BRIDGE_VERSION} -X main.commit=${BRIDGE_COMMIT}" -o /go/bin/alertmanager-icinga-bridge
 
 # Final Image
-FROM gcr.io/distroless/static:nonroot
+FROM gcr.io/distroless/static-debian13:nonroot
 
 WORKDIR /
 
