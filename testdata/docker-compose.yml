@@ -3,7 +3,7 @@ version: '2'
 services:
   prometheus:
     restart: unless-stopped
-    image: quay.io/prometheus/prometheus:v3.14.0-distroless
+    image: quay.io/prometheus/prometheus:v3.16.0-distroless
     command:
       - --config.file=/etc/prometheus/prometheus.yml
       - --storage.tsdb.path=/prometheus
