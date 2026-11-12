@@ -79,7 +79,7 @@ services:
     - postgres
   icingaweb:
     restart: unless-stopped
-    image: docker.io/icinga/icingaweb2:2.14.0
+    image: docker.io/icinga/icingaweb2:2.14.1
     ports:
       - name: web
         target: 8080
