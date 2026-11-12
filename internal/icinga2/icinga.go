@@ -34,45 +34,74 @@ var (
 // Client is what we use to talk to the Icinga2 API
 type Client struct {
 	IcingaURL  []string
-	Username   string
-	Password   string
+	headers    map[string]string
 	httpClient *http.Client
 	logger     *slog.Logger
-	config     *config.Config
 }
 
 func NewClient(config *config.Config, logger *slog.Logger) *Client {
-	var rt http.RoundTripper = &http.Transport{
-		Proxy: http.ProxyFromEnvironment,
-		DialContext: (&net.Dialer{
-			Timeout:   30 * time.Second,
-			KeepAlive: 30 * time.Second,
-		}).DialContext,
-		DisableKeepAlives:   config.IcingaDisableKeepAlives,
+	return NewClientWithOptions(
+		WithIcingaBasicAuth(config.IcingaUser, config.IcingaPassword),
+		WithIcingaAPIEndpoints(config.IcingaURL),
+		WithIcingaLogger(logger),
+		WithTransportDisableKeepAlives(config.IcingaDisableKeepAlives),
+		WithTransportTLSClientConfig(config.IcingaTLSConfig),
+	)
+}
+
+// NewClientWithOptions returns a [Client] instance using the builder pattern.
+// the provided options affect various internal components of the result.
+func NewClientWithOptions(opts ...builderOption) *Client {
+	dialer := &net.Dialer{
+		Timeout:   30 * time.Second,
+		KeepAlive: 30 * time.Second,
+	}
+	transport := &http.Transport{
+		Proxy:               http.ProxyFromEnvironment,
 		ForceAttemptHTTP2:   true,
 		TLSHandshakeTimeout: 30 * time.Second,
-		TLSClientConfig:     config.IcingaTLSConfig,
 	}
-
 	client := &http.Client{
 		// We could also use a context.WithTimeout for the requests
-		Timeout:   10 * time.Second,
-		Transport: rt,
+		Timeout: 10 * time.Second,
+	}
+	headers := map[string]string{
+		HeaderAccept:      MIMETypeApplicationJSON,
+		HeaderContentType: MIMETypeApplicationJSON,
+	}
+	icinga := &Client{
+		IcingaURL: []string{},
+		headers:   headers,
+		logger:    slog.Default(),
 	}
 
-	return &Client{
-		IcingaURL:  config.IcingaURL,
-		Username:   config.IcingaUser,
-		Password:   config.IcingaPassword,
-		httpClient: client,
-		config:     config,
-		logger:     logger,
+	for _, o := range opts {
+		switch f := o.(type) {
+		case clientOption:
+			f.ApplyClient(client)
+		case dialerOption:
+			f.ApplyDialer(dialer)
+		case icingaOption:
+			f.ApplyIcinga(icinga)
+		case transportOption:
+			f.ApplyTransport(transport)
+		}
 	}
+
+	transport.DialContext = dialer.DialContext
+	client.Transport = transport
+	icinga.httpClient = client
+
+	return icinga
 }
 
 // Do is a small wrapper that tries the given request against all given Icinga API endpoints
 func (c *Client) Do(req *http.Request, path string) (*http.Response, error) {
 	var endpointErrors strings.Builder
+
+	for k, v := range c.headers {
+		req.Header.Set(k, v)
+	}
 
 	for _, base := range c.IcingaURL {
 		// Since we determine what the path is this probably won't fail
@@ -85,12 +114,6 @@ func (c *Client) Do(req *http.Request, path string) (*http.Response, error) {
 		}
 
 		c.logger.Debug(fmt.Sprintf("Calling Icinga API at %s", req.URL), "component", "icinga")
-
-		req.Header.Set("User-Agent", "alertmanager-icinga-bridge")
-		req.Header.Set("Accept", "application/json")
-		req.Header.Set("Content-Type", "application/json")
-
-		req.SetBasicAuth(c.Username, c.Password)
 
 		resp, err := c.httpClient.Do(req)
 
