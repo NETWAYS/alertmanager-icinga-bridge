@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 # Build Image
-FROM docker.io/golang:1.26-trixie AS builder
+FROM docker.io/golang:1.27-trixie AS builder
 
 ARG BRIDGE_VERSION=development
 ARG BRIDGE_COMMIT=HEAD
