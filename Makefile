@@ -4,11 +4,15 @@ CONTAINER_RUNTIME?=podman
 
 COMMIT := $(shell git rev-parse HEAD)
 VERSION?=latest
+IMAGE_REPOSITORY?=ghcr.io/netways/alertmanager-icinga-bridge
 
 build-image:
 	$(CONTAINER_RUNTIME) build --pull \
         --build-arg BRIDGE_VERSION=$(VERSION) \
-        -t ghcr.io/netways/alertmanager-icinga-bridge:latest .
+        -t $(IMAGE_REPOSITORY):$(VERSION) .
+release-image:
+	$(CONTAINER_RUNTIME) push \
+        $(IMAGE_REPOSITORY):$(VERSION)
 build:
 	mkdir -p dist; \
 	CGO_ENABLED=0 go build -o dist/alertmanager-icinga-bridge
