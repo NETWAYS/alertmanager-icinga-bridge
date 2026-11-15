@@ -61,7 +61,14 @@ func main() {
 	defer cancel()
 
 	// Create Icinga Client
-	icingaClient := icinga2.NewClient(cfg, logger)
+	icingaClient := icinga2.NewClientWithOptions(
+		icinga2.WithIcingaBasicAuth(cfg.IcingaUser, cfg.IcingaPassword),
+		icinga2.WithIcingaAPIEndpoints(cfg.IcingaURL),
+		icinga2.WithIcingaLogger(logger),
+		icinga2.WithTransportDisableKeepAlives(cfg.IcingaDisableKeepAlives),
+		icinga2.WithTransportTLSClientConfig(cfg.IcingaTLSConfig),
+		icinga2.WithIcingaUserAgent("alertmanager-icinga-bridge", version, commit),
+	)
 
 	logger.Info("Starting alertmanager-icinga-bridge", "version", version, "commit", commit, "component", "main")
 
