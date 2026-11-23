@@ -5,6 +5,7 @@ package api
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"io"
 	"log/slog"
 	"net/http"
@@ -18,11 +19,6 @@ import (
 	"github.com/NETWAYS/alertmanager-icinga-bridge/internal/config"
 	"github.com/NETWAYS/alertmanager-icinga-bridge/internal/icinga2"
 )
-
-func loadTestdata(filepath string) []byte {
-	data, _ := os.ReadFile(filepath)
-	return data
-}
 
 func testLogger() *slog.Logger {
 	return slog.New(slog.NewJSONHandler(io.Discard, nil))
@@ -41,6 +37,22 @@ func testConfig(url string) *config.Config {
 		NotesTextAnnotations:     []string{"description"},
 		NotesURLAnnotations:      []string{"runbook_url"},
 	}
+}
+
+func respondJSONFile(w http.ResponseWriter, code int, filepath string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(code)
+
+	data, _ := os.ReadFile(filepath)
+	_, _ = w.Write(data)
+}
+
+func respondJSONStatus(w http.ResponseWriter, status icinga2.OperationStatus) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status.Code)
+
+	response := icinga2.NewOperationResults(status)
+	_ = json.NewEncoder(w).Encode(response)
 }
 
 func TestAuthHandler_WithOK(t *testing.T) {
@@ -219,15 +231,21 @@ func TestManageIcingaResult_WithService(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/v1/objects/hosts/unittest":
-			w.WriteHeader(http.StatusOK)
-			w.Write(loadTestdata(datasetHost))
-		case "/v1/objects/hosts/unittest!heartbeat":
-			w.WriteHeader(http.StatusOK)
-			w.Write(loadTestdata(datasetService))
+			respondJSONFile(w, http.StatusOK, datasetHost)
+		case "/v1/objects/services/unittest!HighCPUUsage_484d0da2d5ed92c6":
+			respondJSONFile(w, http.StatusOK, datasetService)
 		case "/v1/actions/process-check-result/":
-			w.WriteHeader(http.StatusOK)
+			status := icinga2.NewSimpleOperationStatus(http.StatusOK, "Successfully processed check result for object.")
+
+			respondJSONStatus(w, status)
 		default:
-			http.NotFound(w, r)
+			status := icinga2.OperationStatus{
+				Code:   http.StatusNotFound,
+				Status: "No objects found.",
+				Errors: []string{r.URL.Path},
+			}
+
+			respondJSONStatus(w, status)
 		}
 	}))
 
@@ -287,15 +305,21 @@ func TestManageIcingaResult_WithHost(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/v1/objects/hosts/unittest":
-			w.WriteHeader(http.StatusOK)
-			w.Write(loadTestdata(datasetHost))
-		case "/v1/objects/hosts/unittest!heartbeat":
-			w.WriteHeader(http.StatusOK)
-			w.Write(loadTestdata(datasetService))
+			respondJSONFile(w, http.StatusOK, datasetHost)
+		case "/v1/objects/services/unittest!heartbeat":
+			respondJSONFile(w, http.StatusOK, datasetService)
 		case "/v1/actions/process-check-result/":
-			w.WriteHeader(http.StatusOK)
+			status := icinga2.NewSimpleOperationStatus(http.StatusOK, "Successfully processed check result for object.")
+
+			respondJSONStatus(w, status)
 		default:
-			http.NotFound(w, r)
+			status := icinga2.OperationStatus{
+				Code:   http.StatusNotFound,
+				Status: "No objects found.",
+				Errors: []string{r.URL.Path},
+			}
+
+			respondJSONStatus(w, status)
 		}
 	}))
 
