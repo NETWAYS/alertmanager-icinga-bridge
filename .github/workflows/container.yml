@@ -8,9 +8,10 @@ on:
       - v*
   pull_request:
 
+# primarily used by the Makefile
 env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ghcr.io/netways/alertmanager-icinga-bridge
+  IMAGE_REPOSITORY: ghcr.io/netways/alertmanager-icinga-bridge
+  CONTAINER_RUNTIME: docker
 
 jobs:
   push:
@@ -23,20 +24,17 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      - name: Shared step input
+        id: variables
+        run: |
+          echo "version=${GITHUB_REF#refs/tags/v}" | tee -a $GITHUB_OUTPUT
+          echo "registry=${IMAGE_REPOSITORY%%/*}" | tee -a $GITHUB_OUTPUT
+
       - name: Build image
-        run: make build-image CONTAINER_RUNTIME=docker "VERSION=${GITHUB_REF}"
+        run: make build-image "VERSION=${{ steps.variables.outputs.version }}"
 
       - name: Log in to registry
-        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ${{ steps.variables.outputs.registry }} -u ${{ github.actor }} --password-stdin
 
       - name: Push image
-        run: |
-          IMAGE_ID=ghcr.io/netways/alertmanager-icinga-bridge
-          # This strips the git ref prefix from the version.
-          VERSION=$(echo "${{ github.ref }}" | sed -e 's,.*/\(.*\),\1,')
-          # This strips the "v" prefix from the tag name.
-          [[ "${{ github.ref }}" == "refs/tags/"* ]] && VERSION=$(echo $VERSION | sed -e 's/^v//')
-          echo IMAGE_ID=$IMAGE_ID
-          echo VERSION=$VERSION
-          docker tag $IMAGE_NAME $IMAGE_ID:$VERSION
-          docker push $IMAGE_ID:$VERSION
+        run: make release-image "VERSION=${{ steps.variables.outputs.version }}"
