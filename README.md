@@ -2,6 +2,8 @@
 
 The Alertmanager to Icinga bridge can receive alerts from the Prometheus Alertmanager's generic webhook receiver and creates Icinga Services for these alerts.
 
+A single bridge can serve many Alertmanagers (e.g. one per Kubernetes cluster): with `--host-labels` it derives the Icinga host from alert labels such as `cluster` and `project` and creates that host on demand. See [Many Alertmanagers, hosts from alert labels](#many-alertmanagers-hosts-from-alert-labels).
+
 Other Icinga and Prometheus integrations we provide:
 
 * https://github.com/NETWAYS/check_prometheus/
@@ -59,46 +61,179 @@ alertmanager-icinga-bridge \
  --bearer-token alertmanager-example-token
 ```
 
+Example for many clusters, with hosts derived from the `cluster` and `project` labels:
+
+```bash
+alertmanager-icinga-bridge \
+ --id k8s \
+ --icinga-hostname alertmanager-bridge \
+ --icinga-url "https://localhost:5665" \
+ --icinga-user alertmanager-bridge \
+ --icinga-password icinga-example-api-password \
+ --listen-addr 0.0.0.0:8888 \
+ --tls-cert-path /etc/alertmanager-icinga-bridge/tls.crt \
+ --tls-key-path /etc/alertmanager-icinga-bridge/tls.key \
+ --bearer-token token-cluster-a,token-cluster-b \
+ --host-labels cluster,project \
+ --host-mapping-file /etc/alertmanager-icinga-bridge/host-mapping.yaml
+```
+
 ## Configuration
 
 ```
 Flags:
---help                                                    Show context-sensitive help.
---id=STRING                                               Instance ID ($ALERTMANAGER_ICINGA_BRIDGE_ID)
---loglevel="info"                                         Loglevel (debug, info, warn, error) ($ALERTMANAGER_ICINGA_BRIDGE_LOGLEVEL)
---version                                                 Print version information and quit
---icinga-url=ICINGA-URL,...                               Icinga API URL (can be repeated) ($ALERTMANAGER_ICINGA_BRIDGE_ICINGA_URL)
---icinga-hostname=STRING                                  Icinga host name to manage services for ($ALERTMANAGER_ICINGA_BRIDGE_ICINGA_HOSTNAME)
---disable-keep-alives                                     Disable HTTP keepalives ($ALERTMANAGER_ICINGA_BRIDGE_DISABLE_KEEPALIVES)
---display-name-as-service-name                            Set the Icinga service display name to the generated service name ($ALERTMANAGER_ICINGA_BRIDGE_DISPLAY_NAME_AS_SERVICE_NAME)
---icinga-insecure-tls                                     Skip Icinga TLS verification ($ALERTMANAGER_ICINGA_BRIDGE_ICINGA_INSECURE_TLS)
---icinga-ca-file=STRING                                   Path of a custom CA certificate to use when connecting to the Icinga API ($ALERTMANAGER_ICINGA_BRIDGE_ICINGA_CA)
---icinga-password=STRING                                  Icinga API password ($ALERTMANAGER_ICINGA_BRIDGE_ICINGA_PASSWORD)
---icinga-user=STRING                                      Icinga API username ($ALERTMANAGER_ICINGA_BRIDGE_ICINGA_USERNAME)
---custom-severity-levels=KEY=VALUE;...                    Add or override the default mapping of severity levels to service states (severity_level=service_state) ($ALERTMANAGER_ICINGA_BRIDGE_ALERTMANAGER_CUSTOM_SEVERITY_LEVELS)
---gc-interval=15m                                         Interval to check for and remove created services ($ALERTMANAGER_ICINGA_BRIDGE_GC_INTERVAL)
---heartbeat-interval=1m                                   Interval for the bridge self-monitoring service heartbeat ($ALERTMANAGER_ICINGA_BRIDGE_HEARTBEAT_INTERVAL)
---heartbeat-service="heartbeat"                           The name for the bridge self-monitoring service ($ALERTMANAGER_ICINGA_BRIDGE_HEARTBEAT_SERVICE)
---listen-addr="127.0.0.1:8888"                            Listening address for the incoming Alertmanager requests ($ALERTMANAGER_ICINGA_BRIDGE_LISTEN_ADDR)
---bearer-token=STRING                                     Bearer token for incoming requests ($ALERTMANAGER_ICINGA_BRIDGE_BEARER_TOKEN)
---tls-cert-path=STRING                                    Path of a certificate file for TLS-enabled webhook endpoint (full chain) ($ALERTMANAGER_ICINGA_BRIDGE_TLS_CERT)
---tls-key-path=STRING                                     Path of a private key file for TLS-enabled webhook endpoint ($ALERTMANAGER_ICINGA_BRIDGE_TLS_KEY)
---check-command="dummy"                                   Specify Icinga check command during service creation ($ALERTMANAGER_ICINGA_BRIDGE_SERVICE_CHECKS_COMMAND)
---active-checks                                           Create Icinga services as active checks ($ALERTMANAGER_ICINGA_BRIDGE_SERVICE_CHECKS_ACTIVE)
---plugin-output-by-states                                 Enable dynamic selection of plugin output annotation based on service state ($ALERTMANAGER_ICINGA_BRIDGE_PLUGINOUTPUT_BY_STATES)
---max-check-attempts=1                                    The maximum number of checks which are executed before changing to a hard state ($ALERTMANAGER_ICINGA_BRIDGE_SERVICE_MAX_CHECK_ATTEMPTS)
---templates=generic-service,...                           Create Icinga services with the given template (can be repeated) ($ALERTMANAGER_ICINGA_BRIDGE_SERVICE_TEMPLATE)
---icinga-host-object-labels=icinga_use_host,...           List of Labels depicting the Icinga Host object to associate the alert service with (uses --icinga-hostname if no label is found on alerts) ($ALERTMANAGER_BRIDGE_ICINGA_HOST_OBJECT_LABELS)
---icinga-host-check-labels=icinga_use_host_check,...      List of Labels to be used to associate the incoming alert with the Icinga Host object instead of a Service object ($ALERTMANAGER_BRIDGE_ICINGA_HOST_CHECK_LABELS)
---icinga-host-zone-labels=icinga_use_zone,...             List of Labels to be used to set the zone attribute of the Icinga service object ($ALERTMANAGER_BRIDGE_ICINGA_HOST_ZONE_LABELS)
---icinga-host-template-labels=icinga_use_template,...     List of Labels to be used to set the included template for the Icinga service object (in addition to --templates) ($ALERTMANAGER_BRIDGE_ICINGA_HOST_TEMPLATE_LABELS)
---plugin-output-annotations=message,...                   List of Annotation names to be used to set the plugin output for the Icinga service ($ALERTMANAGER_ICINGA_BRIDGE_PLUGINOUTPUT_ANNOTATIONS)
---notes-text-annotations=description,...                  List of Annotations to be used to set the notes text for the Icinga service ($ALERTMANAGER_BRIDGE_NOTES_TEXT_ANNOTATIONS)
---notes-url-annotations=runbook_url,...                   List of Annotations to be used to set the notes URL for the Icinga service ($ALERTMANAGER_BRIDGE_NOTES_URL_ANNOTATIONS)
---checks-interval=12h                                     Interval (in seconds) to be used for Icinga check_interval and retry_interval ($ALERTMANAGER_ICINGA_BRIDGE_SERVICE_CHECKS_INTERVAL)
---keep-for=168h                                           How long to keep created alerts around after they have been resolved ($ALERTMANAGER_ICINGA_BRIDGE_KEEP_FOR)
---static-service-vars=KEY=VALUE;...                       Custom variable to be set for created Icinga services (variable=value, can be repeated) ($ALERTMANAGER_ICINGA_BRIDGE_STATIC_SERVICE_VAR)
---alert-fingerprint-excludes=severity,...                 Alert labels to exclude from calculating the fingerprint (can be repeated) ($ALERTMANAGER_ICINGA_BRIDGE_ALERT_FINGERPRINT_EXCLUDES)
+  -h, --help                       Show context-sensitive help.
+      --id=STRING                  Instance ID ($ALERTMANAGER_ICINGA_BRIDGE_ID)
+      --loglevel=info              Loglevel (debug, info, warn, error)
+                                   ($ALERTMANAGER_ICINGA_BRIDGE_LOGLEVEL)
+      --version                    Print version information and quit
+      --icinga-url=ICINGA-URL,...
+                                   Icinga API URL (can be repeated)
+                                   ($ALERTMANAGER_ICINGA_BRIDGE_ICINGA_URL)
+      --icinga-hostname=STRING     Icinga host name to manage services for
+                                   ($ALERTMANAGER_ICINGA_BRIDGE_ICINGA_HOSTNAME)
+      --disable-keep-alives        Disable HTTP keepalives
+                                   ($ALERTMANAGER_ICINGA_BRIDGE_DISABLE_KEEPALIVES)
+      --display-name-as-service-name
+                                   Set the Icinga service display
+                                   name to the generated service name
+                                   ($ALERTMANAGER_ICINGA_BRIDGE_DISPLAY_NAME_AS_SERVICE_NAME)
+      --icinga-insecure-tls        Skip Icinga TLS verification
+                                   ($ALERTMANAGER_ICINGA_BRIDGE_ICINGA_INSECURE_TLS)
+      --icinga-ca-file=STRING      Path of a custom CA certificate to
+                                   use when connecting to the Icinga API
+                                   ($ALERTMANAGER_ICINGA_BRIDGE_ICINGA_CA)
+      --icinga-password=STRING     Icinga API password
+                                   ($ALERTMANAGER_ICINGA_BRIDGE_ICINGA_PASSWORD)
+      --icinga-user=STRING         Icinga API username
+                                   ($ALERTMANAGER_ICINGA_BRIDGE_ICINGA_USERNAME)
+      --custom-severity-levels=KEY=VALUE;...
+                                   Add or override the default mapping
+                                   of severity levels to service states
+                                   (severity_level=service_state)
+                                   ($ALERTMANAGER_ICINGA_BRIDGE_ALERTMANAGER_CUSTOM_SEVERITY_LEVELS)
+      --gc-interval=15m            Interval to check for and
+                                   remove created services
+                                   ($ALERTMANAGER_ICINGA_BRIDGE_GC_INTERVAL)
+      --heartbeat-interval=1m      Interval for the bridge
+                                   self-monitoring service heartbeat
+                                   ($ALERTMANAGER_ICINGA_BRIDGE_HEARTBEAT_INTERVAL)
+      --heartbeat-service="heartbeat"
+                                   The name for the bridge
+                                   self-monitoring service
+                                   ($ALERTMANAGER_ICINGA_BRIDGE_HEARTBEAT_SERVICE)
+      --listen-addr="127.0.0.1:8888"
+                                   Listening address for the
+                                   incoming Alertmanager requests
+                                   ($ALERTMANAGER_ICINGA_BRIDGE_LISTEN_ADDR)
+      --bearer-token=BEARER-TOKEN,...
+                                   Bearer token for incoming requests (can
+                                   be repeated, e.g. one per Alertmanager)
+                                   ($ALERTMANAGER_ICINGA_BRIDGE_BEARER_TOKEN)
+      --tls-cert-path=STRING       Path of a certificate file for
+                                   TLS-enabled webhook endpoint (full chain)
+                                   ($ALERTMANAGER_ICINGA_BRIDGE_TLS_CERT)
+      --tls-key-path=STRING        Path of a private key file for
+                                   TLS-enabled webhook endpoint
+                                   ($ALERTMANAGER_ICINGA_BRIDGE_TLS_KEY)
+      --check-command="dummy"      Specify Icinga check command
+                                   during service creation
+                                   ($ALERTMANAGER_ICINGA_BRIDGE_SERVICE_CHECKS_COMMAND)
+      --active-checks              Create Icinga services as active checks
+                                   ($ALERTMANAGER_ICINGA_BRIDGE_SERVICE_CHECKS_ACTIVE)
+      --plugin-output-by-states    Enable dynamic selection of plugin
+                                   output annotation based on service state
+                                   ($ALERTMANAGER_ICINGA_BRIDGE_PLUGINOUTPUT_BY_STATES)
+      --max-check-attempts=1       The maximum number of checks which are
+                                   executed before changing to a hard state
+                                   ($ALERTMANAGER_ICINGA_BRIDGE_SERVICE_MAX_CHECK_ATTEMPTS)
+      --templates=generic-service,...
+                                   Create Icinga services with the
+                                   given template (can be repeated)
+                                   ($ALERTMANAGER_ICINGA_BRIDGE_SERVICE_TEMPLATE)
+      --icinga-host-object-labels=icinga_use_host,...
+                                   List of Labels depicting the Icinga
+                                   Host object to associate the alert
+                                   service with (uses --icinga-hostname
+                                   if no label is found on alerts)
+                                   ($ALERTMANAGER_BRIDGE_ICINGA_HOST_OBJECT_LABELS)
+      --icinga-host-check-labels=icinga_use_host_check,...
+                                   List of Labels to be used to associate
+                                   the incoming alert with the Icinga
+                                   Host object instead of a Service object
+                                   ($ALERTMANAGER_BRIDGE_ICINGA_HOST_CHECK_LABELS)
+      --icinga-host-zone-labels=icinga_use_zone,...
+                                   List of Labels to be used to set the zone
+                                   attribute of the Icinga service object
+                                   ($ALERTMANAGER_BRIDGE_ICINGA_HOST_ZONE_LABELS)
+      --icinga-host-template-labels=icinga_use_template,...
+                                   List of Labels to be used to set the
+                                   included template for the Icinga service
+                                   object (in addition to --templates)
+                                   ($ALERTMANAGER_BRIDGE_ICINGA_HOST_TEMPLATE_LABELS)
+      --plugin-output-annotations=message,...
+                                   List of Annotation names to be used to set
+                                   the plugin output for the Icinga service
+                                   ($ALERTMANAGER_ICINGA_BRIDGE_PLUGINOUTPUT_ANNOTATIONS)
+      --notes-text-annotations=description,...
+                                   List of Annotations to be used to set
+                                   the notes text for the Icinga service
+                                   ($ALERTMANAGER_BRIDGE_NOTES_TEXT_ANNOTATIONS)
+      --notes-url-annotations=runbook_url,...
+                                   List of Annotations to be used to set
+                                   the notes URL for the Icinga service
+                                   ($ALERTMANAGER_BRIDGE_NOTES_URL_ANNOTATIONS)
+      --alert-fingerprint-excludes=severity,...
+                                   Alert labels to exclude from calculating
+                                   the fingerprint (can be repeated)
+                                   ($ALERTMANAGER_ICINGA_BRIDGE_ALERT_FINGERPRINT_EXCLUDES)
+      --checks-interval=12h        Interval (in seconds) to be used for
+                                   Icinga check_interval and retry_interval
+                                   ($ALERTMANAGER_ICINGA_BRIDGE_SERVICE_CHECKS_INTERVAL)
+      --keep-for=168h              How long to keep created alerts
+                                   around after they have been resolved
+                                   ($ALERTMANAGER_ICINGA_BRIDGE_KEEP_FOR)
+      --static-service-vars=KEY=VALUE;...
+                                   Custom variable to be set for created Icinga
+                                   services (variable=value, can be repeated)
+                                   ($ALERTMANAGER_ICINGA_BRIDGE_STATIC_SERVICE_VAR)
+      --host-labels=HOST-LABELS,...
+                                   Alert labels whose values form the Icinga
+                                   host name, e.g. cluster,project (hosts are
+                                   created on demand; empty disables this)
+                                   ($ALERTMANAGER_ICINGA_BRIDGE_HOST_LABELS)
+      --host-label-separator="-"
+                                   Separator between the label
+                                   values in derived host names
+                                   ($ALERTMANAGER_ICINGA_BRIDGE_HOST_LABEL_SEPARATOR)
+      --host-name-prefix=STRING    Prefix for derived host names
+                                   ($ALERTMANAGER_ICINGA_BRIDGE_HOST_NAME_PREFIX)
+      --host-mapping-file=STRING
+                                   YAML/JSON file that maps label values (e.g.
+                                   project IDs to names) for derived
+                                   host names; reloaded on SIGHUP
+                                   ($ALERTMANAGER_ICINGA_BRIDGE_HOST_MAPPING_FILE)
+      --host-templates=generic-host,...
+                                   Templates for created Icinga
+                                   hosts (can be repeated)
+                                   ($ALERTMANAGER_ICINGA_BRIDGE_HOST_TEMPLATE)
+      --host-check-command="dummy"
+                                   Check command for created Icinga hosts
+                                   (empty: leave it to the templates)
+                                   ($ALERTMANAGER_ICINGA_BRIDGE_HOST_CHECK_COMMAND)
+      --host-zone=STRING           Zone for created Icinga hosts
+                                   ($ALERTMANAGER_ICINGA_BRIDGE_HOST_ZONE)
+      --static-host-vars=KEY=VALUE;...
+                                   Custom variable to be set for created Icinga
+                                   hosts (variable=value, can be repeated)
+                                   ($ALERTMANAGER_ICINGA_BRIDGE_STATIC_HOST_VAR)
+      --host-cache-ttl=10m         How long a host is assumed to
+                                   exist before it is looked up again
+                                   ($ALERTMANAGER_ICINGA_BRIDGE_HOST_CACHE_TTL)
+      --host-keep-for=168h         Remove created hosts that have no
+                                   bridge services left and are older
+                                   than this (0 disables host removal)
+                                   ($ALERTMANAGER_ICINGA_BRIDGE_HOST_KEEP_FOR)
 ```
 
 Most flags can be set with environment variables, refer to the help to see which flags.
@@ -318,6 +453,104 @@ To enable garbage collection on these alerts, they can be set to "downtime" in I
 
 The Alertmanager-Icinga-Bridge will create an Icinga service check with active checks enabled and with the check interval set to the parsed duration.
 We add 10% to the parsed duration to account for network latency etc., which could otherwise lead to flapping heartbeat checks.
+
+## Many Alertmanagers, hosts from alert labels
+
+Running one bridge (and one Icinga host) per Alertmanager does not scale to dozens of clusters.
+Instead, a single bridge, e.g. on the Icinga master, can receive the alerts of all Alertmanagers and
+put each alert on an Icinga host derived from its labels:
+
+```
+--host-labels=cluster,project
+```
+
+| Alert labels | Icinga host |
+| ------------ | ----------- |
+| `cluster=xraydmz2`, `project=p-q2v7w` | `xraydmz2-p-q2v7w` |
+| `cluster=xraydmz2`, `project=p-q2v7w`, with the mapping `xraydmz2/p-q2v7w: system` | `xraydmz2-system` |
+| `cluster=xraydmz2` (no `project`, e.g. `Watchdog`) | `xraydmz2` |
+| no `cluster` label | `--icinga-hostname` |
+| `icinga_use_host=MyHost` | `MyHost` (must exist; takes precedence) |
+
+* The values of the `--host-labels` are joined with `--host-label-separator` (default `-`) and
+  prefixed with `--host-name-prefix` (default none). Characters other than letters, digits, `.`,
+  `_` and `-` become `_`.
+* The first label is required: alerts without it go to `--icinga-hostname`. Later labels that an
+  alert does not carry are left out, unless the mapping file gives them a default.
+* Make sure every Alertmanager adds the labels, e.g. as Prometheus `external_labels` or via
+  `alert_relabel_configs`.
+
+### Mapping label values
+
+`--host-mapping-file` names a YAML (or JSON) file that translates label values, for example Rancher
+project IDs to project names (see [`contrib/host-mapping.example.yaml`](contrib/host-mapping.example.yaml)):
+
+```yaml
+defaults:
+  project: cluster          # optional: value for alerts without a "project" label
+labels:
+  project:
+    xraydmz2/p-q2v7w: system   # only for cluster xraydmz2
+    p-shared: shared           # for every cluster
+```
+
+A key can be scoped by the (original) values of the host labels that come before it, joined by `/`;
+scoped keys take precedence over plain ones. The file is checked at startup and re-read on `SIGHUP`
+(`systemctl reload`); if the new file is broken, the error is logged and the previous mapping stays.
+Hosts that already exist are not renamed: alerts go to the new host name, and the old host is removed
+by the garbage collection once its services are gone.
+
+### Hosts created on demand
+
+When an alert arrives for a host that does not exist yet, the bridge creates it with the
+`--host-templates` (default `generic-host`), `--host-check-command` (default `dummy`, empty leaves it
+to the templates), `--host-zone` and these custom variables:
+
+| Variable | Value |
+| -------- | ----- |
+| `vars.<label>` (e.g. `vars.cluster`, `vars.project`) | label value after mapping (`system`) |
+| `vars.<label>_source` (e.g. `vars.project_source`) | original value of a mapped label (`p-q2v7w`) |
+| `vars.bridge_uuid` | the bridge's `--id` |
+| `vars.bridge_created` | creation time (Unix seconds) |
+| `--static-host-vars` | as given |
+
+Use them in apply rules, host groups and notifications, e.g. `assign where host.vars.cluster == "xraydmz2"`.
+Known hosts are cached for `--host-cache-ttl` (default 10m), so usually only the first alert for a
+host costs an extra API call.
+
+A created host is removed by the garbage collection when no service of this bridge is left on it
+and it was created more than `--host-keep-for` (default 168h) ago; `--host-keep-for=0` keeps them.
+Only hosts whose `vars.bridge_uuid` matches `--id` are removed, never `--icinga-hostname`.
+
+### Authentication and transport
+
+Every Alertmanager sends its notifications with a bearer token; `--bearer-token` can be repeated (or
+given comma-separated in `ALERTMANAGER_ICINGA_BRIDGE_BEARER_TOKEN`), so each cluster can get its own
+token and be revoked separately. Since the Alertmanagers run elsewhere, listen on a reachable address
+(`--listen-addr 0.0.0.0:8888`) and enable TLS (`--tls-cert-path`, `--tls-key-path`).
+
+Alertmanager configuration in each cluster:
+
+```yaml
+receivers:
+- name: icinga
+  webhook_configs:
+  - url: https://icinga.example.com:8888/webhook
+    send_resolved: true
+    http_config:
+      authorization:
+        credentials_file: /etc/alertmanager/secrets/icinga-bridge-token
+```
+
+If one alert of a notification fails, the others are still processed and the bridge answers with
+HTTP 500, so Alertmanager retries the notification.
+
+### Icinga configuration
+
+[`contrib/icinga2-multicluster.conf`](contrib/icinga2-multicluster.conf) has templates, host groups and an
+API user whose permissions are limited to the hosts of the bridge (`host.vars.bridge_uuid`) and its own
+host. The API user needs `objects/create/host` and `objects/delete/host` in addition to the service
+permissions.
 
 # Thanks
 

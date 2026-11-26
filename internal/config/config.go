@@ -5,8 +5,10 @@ package config
 
 import (
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"log/slog"
+	"strings"
 	"time"
 )
 
@@ -30,7 +32,7 @@ type Config struct {
 	CustomSeverityLevels map[string]StatusCode
 
 	PluginOutputByStates bool
-	BearerToken          string
+	BearerTokens         []string
 	ListenAddr           string
 	TLSCertPath          string
 	TLSKeyPath           string
@@ -50,13 +52,24 @@ type Config struct {
 	IcingaTemplates         []string
 	IcingaURL               []string
 	IcingaTLSConfig         *tls.Config
+
+	HostLabels         []string
+	HostLabelSeparator string
+	HostNamePrefix     string
+	HostMappingFile    string
+	HostTemplates      []string
+	HostCheckCommand   string
+	HostZone           string
+	StaticHostVars     map[string]string
+	HostCacheTTL       time.Duration
+	HostKeepFor        time.Duration
 }
 
 func NewConfigFromCLI(cli *CLI) (*Config, error) {
 	conf := Config{
 		ID:                       cli.ID,
 		ActiveChecks:             cli.ActiveChecks,
-		BearerToken:              cli.BearerToken,
+		BearerTokens:             cli.BearerToken,
 		CheckCommand:             cli.CheckCommand,
 		ChecksInterval:           cli.ChecksInterval,
 		GCInterval:               cli.GCInterval,
@@ -83,6 +96,25 @@ func NewConfigFromCLI(cli *CLI) (*Config, error) {
 		NotesURLAnnotations:      cli.NotesURLAnnotations,
 		StaticServiceVars:        cli.StaticServiceVars,
 		CustomSeverityLevels:     cli.CustomSeverityLevels,
+		HostLabels:               nonEmpty(cli.HostLabels),
+		HostLabelSeparator:       cli.HostLabelSeparator,
+		HostNamePrefix:           cli.HostNamePrefix,
+		HostMappingFile:          cli.HostMappingFile,
+		HostTemplates:            nonEmpty(cli.HostTemplates),
+		HostCheckCommand:         cli.HostCheckCommand,
+		HostZone:                 cli.HostZone,
+		StaticHostVars:           cli.StaticHostVars,
+		HostCacheTTL:             cli.HostCacheTTL,
+		HostKeepFor:              cli.HostKeepFor,
+	}
+
+	conf.BearerTokens = nonEmpty(conf.BearerTokens)
+	if len(conf.BearerTokens) == 0 {
+		return &conf, errNoBearerToken
+	}
+
+	if conf.HostMappingFile != "" && len(conf.HostLabels) == 0 {
+		return &conf, errMappingWithoutLabels
 	}
 
 	// Try to load the TLS configuration
@@ -119,6 +151,24 @@ func NewConfigFromCLI(cli *CLI) (*Config, error) {
 	}
 
 	return &conf, nil
+}
+
+var (
+	errNoBearerToken        = errors.New("at least one non-empty bearer token is required")
+	errMappingWithoutLabels = errors.New("a host mapping file requires --host-labels")
+)
+
+// nonEmpty returns the trimmed, non-empty entries of the given list
+func nonEmpty(list []string) []string {
+	result := make([]string, 0, len(list))
+
+	for _, s := range list {
+		if s = strings.TrimSpace(s); s != "" {
+			result = append(result, s)
+		}
+	}
+
+	return result
 }
 
 // MapLogLevel returns the corresponding slog.Level given a string

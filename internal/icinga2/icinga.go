@@ -29,6 +29,7 @@ const (
 var (
 	ErrNotFound            = errors.New("no objects found")
 	ErrNoEndpointReachable = errors.New("no Icinga endpoint reachable")
+	ErrAlreadyExists       = errors.New("object already exists")
 )
 
 // Client is what we use to talk to the Icinga2 API
@@ -103,8 +104,7 @@ func (c *Client) Do(req *http.Request, path string) (*http.Response, error) {
 		}
 
 		if resp.StatusCode >= 500 {
-			resp.Body.Close()
-			fmt.Fprintf(&endpointErrors, " error: '%d' from '%s'", resp.StatusCode, req.URL)
+			fmt.Fprintf(&endpointErrors, " error: '%d' from '%s': %s", resp.StatusCode, req.URL, readErrorBody(resp))
 
 			continue
 		}
@@ -145,6 +145,11 @@ func (c *Client) ProcessCheckResult(ctx context.Context, action Action) error {
 		return ErrNotFound
 	}
 
+	errStatus := checkStatus(res)
+	if errStatus != nil {
+		return errStatus
+	}
+
 	c.logger.Debug("Processed CheckResult at Icinga API", "component", "icinga")
 
 	return nil
@@ -160,7 +165,7 @@ func (c *Client) GetHost(ctx context.Context, name string) (Host, error) {
 		return Host{}, errReq
 	}
 
-	res, errDo := c.Do(req, icingaHostEndpoint+name)
+	res, errDo := c.Do(req, icingaHostEndpoint+url.PathEscape(name))
 
 	if errDo != nil {
 		return Host{}, errDo
@@ -328,6 +333,11 @@ func (c *Client) CreateService(ctx context.Context, service Service) error {
 
 	defer closeBody(res)
 
+	errStatus := checkStatus(res)
+	if errStatus != nil {
+		return errStatus
+	}
+
 	c.logger.Debug("Created service at Icinga API", "component", "icinga")
 
 	return nil
@@ -361,6 +371,11 @@ func (c *Client) UpdateService(ctx context.Context, service Service) error {
 
 	defer closeBody(res)
 
+	errStatus := checkStatus(res)
+	if errStatus != nil {
+		return errStatus
+	}
+
 	c.logger.Debug("Updated service at Icinga API", "component", "icinga")
 
 	return nil
@@ -392,9 +407,168 @@ func (c *Client) DeleteService(ctx context.Context, name string) error {
 
 	defer closeBody(res)
 
+	errStatus := checkStatus(res)
+	if errStatus != nil {
+		return errStatus
+	}
+
 	c.logger.Debug("Deleted service at Icinga API", "component", "icinga")
 
 	return nil
+}
+
+// GetHosts returns all hosts that match the given filter
+func (c *Client) GetHosts(ctx context.Context, filter QueryFilter) ([]Host, error) {
+	c.logger.Debug("Fetching hosts from Icinga API", "component", "icinga")
+
+	data, errMarshal := json.Marshal(filter)
+
+	if errMarshal != nil {
+		return nil, fmt.Errorf("error encoding request: %w", errMarshal)
+	}
+
+	req, errReq := http.NewRequestWithContext(ctx, http.MethodGet, "", bytes.NewReader(data))
+
+	if errReq != nil {
+		return nil, errReq
+	}
+
+	res, errDo := c.Do(req, icingaHostEndpoint)
+
+	if errDo != nil {
+		return nil, errDo
+	}
+
+	defer closeBody(res)
+
+	if res.StatusCode == http.StatusNotFound {
+		return nil, nil
+	}
+
+	errStatus := checkStatus(res)
+	if errStatus != nil {
+		return nil, errStatus
+	}
+
+	result := HostResults{}
+
+	errDecode := json.NewDecoder(res.Body).Decode(&result)
+
+	if errDecode != nil {
+		return nil, fmt.Errorf("could not unmarshal JSON: %w", errDecode)
+	}
+
+	hosts := make([]Host, 0, len(result.Results))
+
+	for _, r := range result.Results {
+		hosts = append(hosts, r.Host)
+	}
+
+	c.logger.Debug("Fetched hosts from Icinga API", "component", "icinga", "count", len(hosts))
+
+	return hosts, nil
+}
+
+// CreateHost creates a host object with the given templates and attributes.
+// If the host already exists, ErrAlreadyExists is returned.
+func (c *Client) CreateHost(ctx context.Context, name string, templates []string, attrs map[string]any) error {
+	c.logger.Debug("Creating host at Icinga API", "component", "icinga", "host", name)
+
+	data, errMarshal := json.Marshal(map[string]any{
+		"templates": templates,
+		"attrs":     attrs,
+	})
+
+	if errMarshal != nil {
+		return fmt.Errorf("error encoding request: %w", errMarshal)
+	}
+
+	req, errReq := http.NewRequestWithContext(ctx, http.MethodPut, "", bytes.NewReader(data))
+
+	if errReq != nil {
+		return errReq
+	}
+
+	res, errDo := c.Do(req, icingaHostEndpoint+url.PathEscape(name))
+
+	if errDo != nil {
+		if strings.Contains(errDo.Error(), "already exists") {
+			return fmt.Errorf("%w: %s", ErrAlreadyExists, name)
+		}
+
+		return errDo
+	}
+
+	defer closeBody(res)
+
+	errStatus := checkStatus(res)
+	if errStatus != nil {
+		return errStatus
+	}
+
+	c.logger.Debug("Created host at Icinga API", "component", "icinga", "host", name)
+
+	return nil
+}
+
+// DeleteHost removes the given host (and everything that depends on it) at the Icinga API
+func (c *Client) DeleteHost(ctx context.Context, name string) error {
+	c.logger.Debug("Deleting host at Icinga API", "component", "icinga", "host", name)
+
+	req, errReq := http.NewRequestWithContext(ctx, http.MethodDelete, "", nil)
+
+	if errReq != nil {
+		return errReq
+	}
+
+	res, errDo := c.Do(req, icingaHostEndpoint+url.PathEscape(name)+"?cascade=1")
+
+	if errDo != nil {
+		return errDo
+	}
+
+	defer closeBody(res)
+
+	if res.StatusCode == http.StatusNotFound {
+		return ErrNotFound
+	}
+
+	errStatus := checkStatus(res)
+	if errStatus != nil {
+		return errStatus
+	}
+
+	c.logger.Debug("Deleted host at Icinga API", "component", "icinga", "host", name)
+
+	return nil
+}
+
+// StatusError is returned for responses from the Icinga API that indicate a failure
+type StatusError struct {
+	StatusCode int
+	Body       string
+}
+
+func (e *StatusError) Error() string {
+	return fmt.Sprintf("Icinga API returned HTTP %d: %s", e.StatusCode, e.Body)
+}
+
+// checkStatus returns a StatusError if the response does not indicate success
+func checkStatus(res *http.Response) error {
+	if res.StatusCode >= 200 && res.StatusCode < 300 {
+		return nil
+	}
+
+	return &StatusError{StatusCode: res.StatusCode, Body: readErrorBody(res)}
+}
+
+// readErrorBody reads a short excerpt of the response body and closes it
+func readErrorBody(res *http.Response) string {
+	defer res.Body.Close()
+
+	data, _ := io.ReadAll(io.LimitReader(res.Body, 4096))
+
+	return strings.TrimSpace(string(data))
 }
 
 // closeBody ensures the body is read and then closed.

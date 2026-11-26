@@ -103,7 +103,7 @@ type CLI struct {
 
 	// Alertmanager Webhook Receiver
 	ListenAddr           string   `kong:"default='127.0.0.1:8888',env='ALERTMANAGER_ICINGA_BRIDGE_LISTEN_ADDR',help='Listening address for the incoming Alertmanager requests'"`
-	BearerToken          string   `kong:"required,env='ALERTMANAGER_ICINGA_BRIDGE_BEARER_TOKEN',help='Bearer token for incoming requests'"`
+	BearerToken          []string `kong:"required,env='ALERTMANAGER_ICINGA_BRIDGE_BEARER_TOKEN',help='Bearer token for incoming requests (can be repeated, e.g. one per Alertmanager)'"`
 	TLSCertPath          string   `kong:"env='ALERTMANAGER_ICINGA_BRIDGE_TLS_CERT',help='Path of a certificate file for TLS-enabled webhook endpoint (full chain)'"`
 	TLSKeyPath           string   `kong:"env='ALERTMANAGER_ICINGA_BRIDGE_TLS_KEY',help='Path of a private key file for TLS-enabled webhook endpoint'"`
 	CheckCommand         string   `kong:"default='dummy',env='ALERTMANAGER_ICINGA_BRIDGE_SERVICE_CHECKS_COMMAND',help='Specify Icinga check command during service creation'"`
@@ -124,4 +124,16 @@ type CLI struct {
 	ChecksInterval    time.Duration     `kong:"default='12h',env='ALERTMANAGER_ICINGA_BRIDGE_SERVICE_CHECKS_INTERVAL',help='Interval (in seconds) to be used for Icinga check_interval and retry_interval'"`
 	KeepFor           time.Duration     `kong:"default='168h',env='ALERTMANAGER_ICINGA_BRIDGE_KEEP_FOR',help='How long to keep created alerts around after they have been resolved'"`
 	StaticServiceVars map[string]string `kong:"env='ALERTMANAGER_ICINGA_BRIDGE_STATIC_SERVICE_VAR',help='Custom variable to be set for created Icinga services (variable=value, can be repeated)'"`
+
+	// Hosts derived from alert labels
+	HostLabels         []string          `kong:"env='ALERTMANAGER_ICINGA_BRIDGE_HOST_LABELS',help='Alert labels whose values form the Icinga host name, e.g. cluster,project (hosts are created on demand; empty disables this)'"`
+	HostLabelSeparator string            `kong:"default='-',env='ALERTMANAGER_ICINGA_BRIDGE_HOST_LABEL_SEPARATOR',help='Separator between the label values in derived host names'"`
+	HostNamePrefix     string            `kong:"env='ALERTMANAGER_ICINGA_BRIDGE_HOST_NAME_PREFIX',help='Prefix for derived host names'"`
+	HostMappingFile    string            `kong:"env='ALERTMANAGER_ICINGA_BRIDGE_HOST_MAPPING_FILE',help='YAML/JSON file that maps label values (e.g. project IDs to names) for derived host names; reloaded on SIGHUP'"`
+	HostTemplates      []string          `kong:"default='generic-host',env='ALERTMANAGER_ICINGA_BRIDGE_HOST_TEMPLATE',help='Templates for created Icinga hosts (can be repeated)'"`
+	HostCheckCommand   string            `kong:"default='dummy',env='ALERTMANAGER_ICINGA_BRIDGE_HOST_CHECK_COMMAND',help='Check command for created Icinga hosts (empty: leave it to the templates)'"`
+	HostZone           string            `kong:"env='ALERTMANAGER_ICINGA_BRIDGE_HOST_ZONE',help='Zone for created Icinga hosts'"`
+	StaticHostVars     map[string]string `kong:"env='ALERTMANAGER_ICINGA_BRIDGE_STATIC_HOST_VAR',help='Custom variable to be set for created Icinga hosts (variable=value, can be repeated)'"`
+	HostCacheTTL       time.Duration     `kong:"default='10m',env='ALERTMANAGER_ICINGA_BRIDGE_HOST_CACHE_TTL',help='How long a host is assumed to exist before it is looked up again'"`
+	HostKeepFor        time.Duration     `kong:"default='168h',env='ALERTMANAGER_ICINGA_BRIDGE_HOST_KEEP_FOR',help='Remove created hosts that have no bridge services left and are older than this (0 disables host removal)'"`
 }

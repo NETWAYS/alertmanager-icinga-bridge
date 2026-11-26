@@ -28,7 +28,7 @@ func testConfig(url string) *config.Config {
 func testServerForDelete() *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
-		case "/v1/objects/service/unittest!svc":
+		case "/v1/objects/services/unittest!svc":
 			w.WriteHeader(http.StatusOK)
 		default:
 			http.NotFound(w, r)
@@ -57,7 +57,7 @@ func TestGCRemoveService_WithRemoved(t *testing.T) {
 		},
 	}
 
-	actualErr := gc.removeServiceIfRequired(context.Background(), svc)
+	_, actualErr := gc.removeServiceIfRequired(context.Background(), svc)
 
 	if actualErr != nil {
 		t.Errorf("expected no error got %v", actualErr)
@@ -94,7 +94,7 @@ func TestGCRemoveService_WithHeartbeatNoDowntime(t *testing.T) {
 		LastStateChange: 1770000000.0,
 	}
 
-	actualErr := gc.removeServiceIfRequired(context.Background(), svc)
+	_, actualErr := gc.removeServiceIfRequired(context.Background(), svc)
 
 	if actualErr != nil {
 		t.Errorf("expected no error got %v", actualErr)
@@ -132,7 +132,7 @@ func TestGCRemoveService_WithHeartbeatDowntime(t *testing.T) {
 		DowntimeDepth:   1,
 	}
 
-	actualErr := gc.removeServiceIfRequired(context.Background(), svc)
+	_, actualErr := gc.removeServiceIfRequired(context.Background(), svc)
 
 	if actualErr != nil {
 		t.Errorf("expected no error got %v", actualErr)
@@ -169,7 +169,7 @@ func TestGCRemoveService_WithSkippedNotOK(t *testing.T) {
 		LastStateChange: 1770000000.0,
 	}
 
-	actualErr := gc.removeServiceIfRequired(context.Background(), svc)
+	_, actualErr := gc.removeServiceIfRequired(context.Background(), svc)
 
 	if actualErr != nil {
 		t.Errorf("expected no error got %v", actualErr)
@@ -203,7 +203,7 @@ func TestGCRemoveService_WithNoKeepFor(t *testing.T) {
 		LastStateChange: 1770000000.0,
 	}
 
-	actualErr := gc.removeServiceIfRequired(context.Background(), svc)
+	_, actualErr := gc.removeServiceIfRequired(context.Background(), svc)
 
 	if actualErr != nil {
 		t.Errorf("expected no error got %v", actualErr)
@@ -240,7 +240,7 @@ func TestGCRemoveService_WithInvalidKeepFor(t *testing.T) {
 		LastStateChange: 1770000000.0,
 	}
 
-	actualErr := gc.removeServiceIfRequired(context.Background(), svc)
+	_, actualErr := gc.removeServiceIfRequired(context.Background(), svc)
 
 	if actualErr != nil {
 		t.Errorf("expected no error got %v", actualErr)

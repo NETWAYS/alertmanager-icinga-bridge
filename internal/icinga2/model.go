@@ -112,9 +112,15 @@ type Action struct {
 }
 
 type Host struct {
-	Name        string `json:"name,omitempty"`
-	DisplayName string `json:"display_name,omitempty"`
-	Zone        string `json:"zone,omitempty"`
+	Name          string `json:"name,omitempty"`
+	DisplayName   string `json:"display_name,omitempty"`
+	Zone          string `json:"zone,omitempty"`
+	DowntimeDepth int    `json:"downtime_depth,omitempty"`
+	Vars          Vars   `json:"vars,omitempty"`
+}
+
+func (h *Host) HasDowntime() bool {
+	return h.DowntimeDepth > 0
 }
 
 type HostResults struct {

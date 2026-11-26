@@ -1,4 +1,7 @@
 alertname="${1:-TestAlert}"
+# The bridge derives the Icinga host from these labels (cluster-project)
+cluster="${2:-demo}"
+project="${3:-p-demo1}"
 
 # \"icinga_use_zone\": \"MyZone\",
 # \"icinga_use_template\": \"MyTemplate\",
@@ -11,6 +14,8 @@ curl -i -X POST http://localhost:9093/api/v2/alerts \
       \"status\": \"firing\",
       \"labels\": {
         \"alertname\": \"${alertname}\",
+        \"cluster\": \"${cluster}\",
+        \"project\": \"${project}\",
         \"instance\": \"localhost:9090\",
         \"job\": \"prometheus\",
         \"icinga_example\": \"variable\",

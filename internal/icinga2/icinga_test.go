@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"log/slog"
 	"net/http"
@@ -198,5 +199,58 @@ func TestGetService(t *testing.T) {
 				t.Fatalf("expected:\n %s \ngot:\n %s", prettyPrint(test.expected), prettyPrint(actual))
 			}
 		})
+	}
+}
+
+func TestCreateAndDeleteHost(t *testing.T) {
+	var got map[string]any
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodPut && r.URL.Path == "/v1/objects/hosts/new":
+			_ = json.NewDecoder(r.Body).Decode(&got)
+		case r.Method == http.MethodPut && r.URL.Path == "/v1/objects/hosts/exists":
+			http.Error(w, `{"results":[{"code":500,"errors":["Object 'exists' already exists."],"status":"Object could not be created."}]}`, http.StatusInternalServerError)
+		case r.Method == http.MethodPut:
+			http.Error(w, `{"results":[{"code":500,"errors":["Import references unknown template: 'nope'"]}]}`, http.StatusInternalServerError)
+		case r.Method == http.MethodDelete && r.URL.Path == "/v1/objects/hosts/new" && r.URL.Query().Get("cascade") == "1":
+		case r.Method == http.MethodDelete && r.URL.Path == "/v1/objects/hosts/forbidden":
+			http.Error(w, `{"error":403,"status":"No objects found."}`, http.StatusForbidden)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer ts.Close()
+
+	c := NewClient(testConfig(ts.URL), testLogger())
+	ctx := context.Background()
+
+	if err := c.CreateHost(ctx, "new", []string{"generic-host"}, map[string]any{"vars": map[string]any{"a": "b"}}); err != nil {
+		t.Fatal(err)
+	}
+
+	if templates, _ := got["templates"].([]any); len(templates) != 1 || templates[0] != "generic-host" {
+		t.Errorf("unexpected body %v", got)
+	}
+
+	if err := c.CreateHost(ctx, "exists", nil, nil); !errors.Is(err, ErrAlreadyExists) {
+		t.Errorf("want ErrAlreadyExists, got %v", err)
+	}
+
+	if err := c.CreateHost(ctx, "broken", []string{"nope"}, nil); err == nil || !strings.Contains(err.Error(), "unknown template") {
+		t.Errorf("want the Icinga error message, got %v", err)
+	}
+
+	if err := c.DeleteHost(ctx, "new"); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := c.DeleteHost(ctx, "gone"); !errors.Is(err, ErrNotFound) {
+		t.Errorf("want ErrNotFound, got %v", err)
+	}
+
+	var statusErr *StatusError
+	if err := c.DeleteHost(ctx, "forbidden"); !errors.As(err, &statusErr) || statusErr.StatusCode != http.StatusForbidden {
+		t.Errorf("want a 403 StatusError, got %v", err)
 	}
 }

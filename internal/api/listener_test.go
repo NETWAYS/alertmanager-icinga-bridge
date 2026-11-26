@@ -227,6 +227,10 @@ func TestManageIcingaResult_WithService(t *testing.T) {
 		case "/v1/actions/process-check-result/":
 			w.WriteHeader(http.StatusOK)
 		default:
+			if strings.HasPrefix(r.URL.Path, "/v1/objects/services/unittest!HighCPUUsage_") && r.Method == http.MethodPut {
+				w.WriteHeader(http.StatusOK)
+				return
+			}
 			http.NotFound(w, r)
 		}
 	}))
@@ -370,7 +374,7 @@ func TestPrepareService_WithNoHeartbeat(t *testing.T) {
 		},
 	}
 
-	svc := l.prepareService("serviceName", "displayName", alert, 0, time.Duration(0))
+	svc := l.prepareService("unittest", "serviceName", "displayName", alert, 0, time.Duration(0))
 
 	if svc.NotesURL != "unittest" {
 		t.Fatalf("expected %v, got %v", "unittest", svc.NotesURL)
@@ -397,7 +401,7 @@ func TestPrepareService_WithHeartbeat(t *testing.T) {
 		},
 	}
 
-	svc := l.prepareService("serviceName", "displayName", alert, 0, time.Duration(100))
+	svc := l.prepareService("unittest", "serviceName", "displayName", alert, 0, time.Duration(100))
 
 	if svc.EnableActiveChecks != true {
 		t.Fatalf("expected EnableActiveChecks to be true got false")
@@ -431,7 +435,8 @@ func TestPrepareService_WithZoneHostTemplate(t *testing.T) {
 		},
 	}
 
-	svc := l.prepareService("serviceName", "displayName", alert, 0, time.Duration(100))
+	hostName, _, _ := l.hostFor(context.Background(), &alert)
+	svc := l.prepareService(hostName, "serviceName", "displayName", alert, 0, time.Duration(100))
 
 	if svc.HostName != "myHost" {
 		t.Fatalf("expected %v, got %v", "myHost", svc.HostName)

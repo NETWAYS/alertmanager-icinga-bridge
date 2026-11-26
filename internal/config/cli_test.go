@@ -24,7 +24,7 @@ func TestCLI(t *testing.T) {
 		wantCLI func(*testing.T, *CLI)
 	}{
 		"empty args": {
-			wantErr: "missing flags: --bearer-token=STRING, --icinga-hostname=STRING, --icinga-password=STRING, --icinga-url=ICINGA-URL,..., --icinga-user=STRING, --id=STRING",
+			wantErr: "missing flags: --bearer-token=BEARER-TOKEN,..., --icinga-hostname=STRING, --icinga-password=STRING, --icinga-url=ICINGA-URL,..., --icinga-user=STRING, --id=STRING",
 		},
 		"minimal args": {
 			haveCLI: requiredArgs,
@@ -58,7 +58,7 @@ func TestCLI(t *testing.T) {
 				}
 
 				wantBearerToken := "token"
-				if wantBearerToken != got.BearerToken {
+				if len(got.BearerToken) != 1 || wantBearerToken != got.BearerToken[0] {
 					t.Errorf("BearerToken mismatch; want=%q, got=%q", wantBearerToken, got.BearerToken)
 				}
 

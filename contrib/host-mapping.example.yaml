@@ -1,0 +1,26 @@
+# Host mapping for --host-mapping-file (YAML or JSON).
+# Reload without restarting: systemctl reload alertmanager-icinga-bridge
+# (or send SIGHUP). A broken file is logged and the previous mapping is kept.
+#
+# With --host-labels=cluster,project an alert with
+#   cluster=xraydmz2, project=p-q2v7w
+# goes to the Icinga host "xraydmz2-system".
+
+# Values for labels that an alert does not carry. Without a default, a missing
+# label is left out of the host name (cluster-wide alerts such as Watchdog then
+# go to the host "xraydmz2"). The first host label has to be present (or have a
+# default); alerts without it go to --icinga-hostname.
+defaults: {}
+#  project: cluster
+
+labels:
+  project:
+    # Rancher project IDs are unique per cluster, so scope them with the
+    # values of the preceding host labels ("<cluster>/<project>").
+    # Scoped keys take precedence over plain ones.
+    xraydmz2/p-q2v7w: system
+    xraydmz2/p-8k2lx: monitoring
+    xraydmz3/p-4t9wq: system
+
+    # A plain key applies to every cluster.
+    # p-shared: shared
